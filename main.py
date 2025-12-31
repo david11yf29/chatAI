@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime
 import json
 import sys
+import httpx
 
 load_dotenv()
 
@@ -39,6 +40,57 @@ client = OpenAI(
     api_key=os.getenv("SUPER_MIND_API_KEY"),
     base_url="https://space.ai-builders.com/backend/v1"
 )
+
+# Web search function
+def web_search(query: str) -> dict:
+    """
+    Call the internal search API to search the web.
+
+    Args:
+        query: The search query string
+
+    Returns:
+        dict: Search results from the API
+    """
+    url = "https://space.ai-builders.com/backend/v1/search/"
+    headers = {
+        "Authorization": f"Bearer {os.getenv('SUPER_MIND_API_KEY')}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "keywords": [query],
+        "max_results": 3
+    }
+
+    try:
+        with httpx.Client() as http_client:
+            response = http_client.post(url, json=payload, headers=headers, timeout=30.0)
+            response.raise_for_status()
+            return response.json()
+    except Exception as e:
+        logger.error(f"Error calling web search API: {e}")
+        return {"error": str(e)}
+
+# Tool schema for the LLM
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "web_search",
+            "description": "Search the web for current information, news, facts, and other real-time data. Use this when you need up-to-date information that you don't have in your training data.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The search query to find information on the web"
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    }
+]
 
 class ChatRequest(BaseModel):
     user_message: str
@@ -155,7 +207,8 @@ async def chat(chat_request: ChatRequest, request: Request):
             model="gpt-5",
             messages=[
                 {"role": "user", "content": chat_request.user_message}
-            ]
+            ],
+            tools=TOOLS
         )
         api_duration = time.time() - api_start_time
 
@@ -165,8 +218,24 @@ async def chat(chat_request: ChatRequest, request: Request):
         )
 
         # Extract response details
-        response_content = response.choices[0].message.content
+        message = response.choices[0].message
+        response_content = message.content if message.content else ""
         finish_reason = response.choices[0].finish_reason if hasattr(response.choices[0], 'finish_reason') else 'N/A'
+
+        # Check if the model wants to call a tool
+        tool_calls = message.tool_calls if hasattr(message, 'tool_calls') and message.tool_calls else None
+
+        if tool_calls:
+            logger.info(
+                f"LLM requested tool call(s): {len(tool_calls)} tool(s)",
+                extra={'request_id': request_id}
+            )
+            for tool_call in tool_calls:
+                logger.info(
+                    f"Tool Call - ID: {tool_call.id} - Function: {tool_call.function.name} - "
+                    f"Arguments: {tool_call.function.arguments}",
+                    extra={'request_id': request_id}
+                )
 
         # Log token usage details
         if hasattr(response, 'usage'):
@@ -204,7 +273,25 @@ async def chat(chat_request: ChatRequest, request: Request):
             extra={'request_id': request_id}
         )
 
-        result = {"response": response_content}
+        result = {
+            "response": response_content,
+            "finish_reason": finish_reason
+        }
+
+        # Include tool calls if present
+        if tool_calls:
+            result["tool_calls"] = [
+                {
+                    "id": tc.id,
+                    "type": tc.type,
+                    "function": {
+                        "name": tc.function.name,
+                        "arguments": tc.function.arguments
+                    }
+                }
+                for tc in tool_calls
+            ]
+
         logger.debug(
             f"Returning chat response - Size: {len(json.dumps(result))} bytes",
             extra={'request_id': request_id}
