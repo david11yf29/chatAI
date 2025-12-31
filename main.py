@@ -10,6 +10,8 @@ from datetime import datetime
 import json
 import sys
 import httpx
+from bs4 import BeautifulSoup
+import re
 
 load_dotenv()
 
@@ -79,6 +81,55 @@ def web_search(query: str) -> dict:
         logger.error(f"Error calling web search API: {e}")
         return {"error": str(e)}
 
+# Read page function
+def read_page(url: str) -> dict:
+    """
+    Fetch a URL and extract the main text content from the HTML.
+    Strips HTML tags, scripts, and styles to return clean text.
+
+    Args:
+        url: The URL to fetch and read
+
+    Returns:
+        dict: Contains the extracted text or error message
+    """
+    try:
+        with httpx.Client() as http_client:
+            # Fetch the URL with a timeout
+            response = http_client.get(url, timeout=30.0, follow_redirects=True)
+            response.raise_for_status()
+
+            # Parse HTML with BeautifulSoup
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            # Remove script and style elements
+            for script in soup(['script', 'style', 'noscript']):
+                script.decompose()
+
+            # Get text content
+            text = soup.get_text()
+
+            # Clean up the text: remove extra whitespace
+            lines = (line.strip() for line in text.splitlines())
+            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+            text = ' '.join(chunk for chunk in chunks if chunk)
+
+            # Limit text length to avoid overwhelming the LLM (max 10000 chars)
+            if len(text) > 10000:
+                text = text[:10000] + "... (truncated)"
+
+            logger.info(f"Successfully fetched and parsed {url} - Text length: {len(text)} chars")
+
+            return {
+                "url": url,
+                "text": text,
+                "length": len(text)
+            }
+
+    except Exception as e:
+        logger.error(f"Error reading page {url}: {e}")
+        return {"error": str(e), "url": url}
+
 # Tool schema for the LLM
 TOOLS = [
     {
@@ -95,6 +146,23 @@ TOOLS = [
                     }
                 },
                 "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_page",
+            "description": "Fetch and read the content of a specific web page. Extracts the main text from the HTML, removing scripts, styles, and other non-content elements. Use this when you have a specific URL and want to read its contents.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "The URL of the web page to fetch and read"
+                    }
+                },
+                "required": ["url"]
             }
         }
     }
@@ -298,7 +366,7 @@ async def chat(chat_request: ChatRequest, request: Request):
                         extra={'request_id': request_id}
                     )
 
-                    # Execute the web_search function
+                    # Execute the appropriate tool function
                     if function_name == "web_search":
                         tool_start_time = time.time()
                         search_result = web_search(function_args.get("query", ""))
@@ -326,6 +394,35 @@ async def chat(chat_request: ChatRequest, request: Request):
                             "name": function_name,
                             "content": json.dumps(search_result)
                         })
+
+                    elif function_name == "read_page":
+                        tool_start_time = time.time()
+                        page_result = read_page(function_args.get("url", ""))
+                        tool_duration = time.time() - tool_start_time
+
+                        # Format tool output for logging
+                        tool_output_preview = json.dumps(page_result)[:200] + "..." if len(json.dumps(page_result)) > 200 else json.dumps(page_result)
+
+                        print(f"[System] Tool Output: '{tool_output_preview}'")
+                        logger.info(
+                            f"[System] Tool Output: '{tool_output_preview}'",
+                            extra={'request_id': request_id}
+                        )
+
+                        logger.info(
+                            f"Tool execution completed - Duration: {tool_duration:.3f}s - "
+                            f"Result size: {len(json.dumps(page_result))} bytes",
+                            extra={'request_id': request_id}
+                        )
+
+                        # Add tool result to conversation
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "name": function_name,
+                            "content": json.dumps(page_result)
+                        })
+
                     else:
                         logger.warning(
                             f"Unknown tool function: {function_name}",
