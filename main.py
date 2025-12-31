@@ -1,10 +1,37 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
+import logging
+import time
+import uuid
+from datetime import datetime
+import json
+import sys
 
 load_dotenv()
+
+# Configure logging with more detailed format
+logging.basicConfig(
+    level=logging.DEBUG,  # Changed to DEBUG for more verbose logging
+    format='%(asctime)s - %(name)s - %(levelname)s - [%(request_id)s] - %(funcName)s:%(lineno)d - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('app.log', mode='a')  # Also log to file
+    ]
+)
+
+# Create a custom filter to add request_id to log records
+class RequestIdFilter(logging.Filter):
+    def filter(self, record):
+        if not hasattr(record, 'request_id'):
+            record.request_id = 'N/A'
+        return True
+
+logger = logging.getLogger(__name__)
+logger.addFilter(RequestIdFilter())
 
 app = FastAPI()
 
@@ -16,16 +43,240 @@ client = OpenAI(
 class ChatRequest(BaseModel):
     user_message: str
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
+
+    # Extract client information
+    client_ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+    content_type = request.headers.get("content-type", "unknown")
+
+    logger.info(
+        f"Incoming request: {request.method} {request.url.path}",
+        extra={'request_id': request_id}
+    )
+
+    logger.debug(
+        f"Request details - Client IP: {client_ip} - User-Agent: {user_agent} - "
+        f"Content-Type: {content_type} - Query params: {dict(request.query_params)}",
+        extra={'request_id': request_id}
+    )
+
+    # Log request headers (excluding sensitive ones)
+    safe_headers = {k: v for k, v in request.headers.items()
+                   if k.lower() not in ['authorization', 'cookie', 'x-api-key']}
+    logger.debug(
+        f"Request headers: {json.dumps(safe_headers)}",
+        extra={'request_id': request_id}
+    )
+
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+
+    logger.info(
+        f"Request completed: {request.method} {request.url.path} - "
+        f"Status: {response.status_code} - Duration: {process_time:.3f}s",
+        extra={'request_id': request_id}
+    )
+
+    logger.debug(
+        f"Response details - Status: {response.status_code} - "
+        f"Content-Type: {response.headers.get('content-type', 'unknown')}",
+        extra={'request_id': request_id}
+    )
+
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Process-Time"] = str(process_time)
+
+    return response
+
 @app.get("/hello/{input}")
-async def hello(input: str):
-    return {"message": f"Hello, World {input}"}
+async def hello(input: str, request: Request):
+    request_id = getattr(request.state, 'request_id', 'N/A')
+
+    logger.info(
+        f"Hello endpoint called with input: {input}",
+        extra={'request_id': request_id}
+    )
+
+    logger.debug(
+        f"Processing hello request - Input length: {len(input)} chars",
+        extra={'request_id': request_id}
+    )
+
+    response_data = {"message": f"Hello, World {input}"}
+
+    logger.debug(
+        f"Returning hello response: {json.dumps(response_data)}",
+        extra={'request_id': request_id}
+    )
+
+    return response_data
 
 @app.post("/chat")
-async def chat(request: ChatRequest):
-    response = client.chat.completions.create(
-        model="gpt-5",
-        messages=[
-            {"role": "user", "content": request.user_message}
-        ]
+async def chat(chat_request: ChatRequest, request: Request):
+    request_id = getattr(request.state, 'request_id', 'N/A')
+
+    logger.info(
+        f"Chat request received - Message length: {len(chat_request.user_message)} chars",
+        extra={'request_id': request_id}
     )
-    return {"response": response.choices[0].message.content}
+
+    # Log message preview (first 100 chars)
+    message_preview = chat_request.user_message[:100] + "..." if len(chat_request.user_message) > 100 else chat_request.user_message
+    logger.debug(
+        f"User message preview: {message_preview}",
+        extra={'request_id': request_id}
+    )
+
+    try:
+        # Log API call configuration
+        api_config = {
+            "model": "gpt-5",
+            "base_url": str(client.base_url),
+            "message_length": len(chat_request.user_message)
+        }
+        logger.info(
+            f"Calling OpenAI API - Config: {json.dumps(api_config)}",
+            extra={'request_id': request_id}
+        )
+
+        logger.debug(
+            f"API Request payload - Model: gpt-5 - Messages count: 1 - "
+            f"First message role: user - Content length: {len(chat_request.user_message)}",
+            extra={'request_id': request_id}
+        )
+
+        api_start_time = time.time()
+        response = client.chat.completions.create(
+            model="gpt-5",
+            messages=[
+                {"role": "user", "content": chat_request.user_message}
+            ]
+        )
+        api_duration = time.time() - api_start_time
+
+        logger.debug(
+            f"OpenAI API call completed - Duration: {api_duration:.3f}s",
+            extra={'request_id': request_id}
+        )
+
+        # Extract response details
+        response_content = response.choices[0].message.content
+        finish_reason = response.choices[0].finish_reason if hasattr(response.choices[0], 'finish_reason') else 'N/A'
+
+        # Log token usage details
+        if hasattr(response, 'usage'):
+            token_details = {
+                "prompt_tokens": response.usage.prompt_tokens,
+                "completion_tokens": response.usage.completion_tokens,
+                "total_tokens": response.usage.total_tokens
+            }
+            logger.info(
+                f"Token usage - {json.dumps(token_details)}",
+                extra={'request_id': request_id}
+            )
+
+        logger.info(
+            f"OpenAI API response received - Duration: {api_duration:.3f}s - "
+            f"Response length: {len(response_content)} chars - "
+            f"Model: {response.model} - "
+            f"Finish reason: {finish_reason} - "
+            f"Tokens used: {response.usage.total_tokens if hasattr(response, 'usage') else 'N/A'}",
+            extra={'request_id': request_id}
+        )
+
+        # Log response preview
+        response_preview = response_content[:100] + "..." if len(response_content) > 100 else response_content
+        logger.debug(
+            f"Response preview: {response_preview}",
+            extra={'request_id': request_id}
+        )
+
+        # Log response structure details
+        logger.debug(
+            f"Response structure - Choices count: {len(response.choices)} - "
+            f"Response ID: {response.id if hasattr(response, 'id') else 'N/A'} - "
+            f"Created: {response.created if hasattr(response, 'created') else 'N/A'}",
+            extra={'request_id': request_id}
+        )
+
+        result = {"response": response_content}
+        logger.debug(
+            f"Returning chat response - Size: {len(json.dumps(result))} bytes",
+            extra={'request_id': request_id}
+        )
+
+        return result
+
+    except Exception as e:
+        error_details = {
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "user_message_length": len(chat_request.user_message)
+        }
+
+        logger.error(
+            f"Error during chat processing: {json.dumps(error_details)}",
+            extra={'request_id': request_id}
+        )
+
+        logger.error(
+            f"Full error traceback for {type(e).__name__}",
+            extra={'request_id': request_id},
+            exc_info=True
+        )
+
+        # Log additional context for specific error types
+        if "timeout" in str(e).lower():
+            logger.error(
+                f"Timeout error detected - API call may have taken too long",
+                extra={'request_id': request_id}
+            )
+        elif "api" in str(e).lower() or "key" in str(e).lower():
+            logger.error(
+                f"API/Authentication error detected - Check API key and configuration",
+                extra={'request_id': request_id}
+            )
+
+        raise
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("=" * 80)
+    logger.info("Application starting up")
+    logger.info("=" * 80)
+
+    # Log environment details
+    logger.info(f"Python version: {sys.version}")
+    logger.info(f"Working directory: {os.getcwd()}")
+    logger.info(f"Process ID: {os.getpid()}")
+
+    # Log API configuration
+    logger.info(f"OpenAI base URL: {client.base_url}")
+    api_key = os.getenv('SUPER_MIND_API_KEY')
+    if api_key:
+        logger.info(f"API key configured: Yes (length: {len(api_key)} chars, starts with: {api_key[:8]}...)")
+    else:
+        logger.warning("API key configured: No - API calls will fail!")
+
+    # Log logging configuration
+    logger.info(f"Logging level: {logging.getLogger().level}")
+    logger.info(f"Log file: app.log")
+
+    # Log FastAPI configuration
+    logger.info(f"FastAPI version: {FastAPI.__version__ if hasattr(FastAPI, '__version__') else 'unknown'}")
+
+    logger.info("Application startup completed successfully")
+    logger.info("=" * 80)
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("=" * 80)
+    logger.info("Application shutting down")
+    logger.info(f"Shutdown time: {datetime.now().isoformat()}")
+    logger.info("Cleanup completed")
+    logger.info("=" * 80)
