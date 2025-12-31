@@ -31,8 +31,16 @@ class RequestIdFilter(logging.Filter):
             record.request_id = 'N/A'
         return True
 
+# Apply the filter to the root logger and all its handlers
+request_id_filter = RequestIdFilter()
+root_logger = logging.getLogger()
+root_logger.addFilter(request_id_filter)
+
+# Also add the filter to all existing handlers to ensure it works in subprocesses
+for handler in root_logger.handlers:
+    handler.addFilter(request_id_filter)
+
 logger = logging.getLogger(__name__)
-logger.addFilter(RequestIdFilter())
 
 app = FastAPI()
 
@@ -185,115 +193,201 @@ async def chat(chat_request: ChatRequest, request: Request):
     )
 
     try:
-        # Log API call configuration
-        api_config = {
-            "model": "gpt-5",
-            "base_url": str(client.base_url),
-            "message_length": len(chat_request.user_message)
-        }
-        logger.info(
-            f"Calling OpenAI API - Config: {json.dumps(api_config)}",
-            extra={'request_id': request_id}
-        )
+        # Initialize conversation history
+        messages = [
+            {"role": "user", "content": chat_request.user_message}
+        ]
 
-        logger.debug(
-            f"API Request payload - Model: gpt-5 - Messages count: 1 - "
-            f"First message role: user - Content length: {len(chat_request.user_message)}",
-            extra={'request_id': request_id}
-        )
+        # Agentic Loop: Allow up to 3 turns
+        max_turns = 3
+        final_response = None
 
-        api_start_time = time.time()
-        response = client.chat.completions.create(
-            model="gpt-5",
-            messages=[
-                {"role": "user", "content": chat_request.user_message}
-            ],
-            tools=TOOLS
-        )
-        api_duration = time.time() - api_start_time
-
-        logger.debug(
-            f"OpenAI API call completed - Duration: {api_duration:.3f}s",
-            extra={'request_id': request_id}
-        )
-
-        # Extract response details
-        message = response.choices[0].message
-        response_content = message.content if message.content else ""
-        finish_reason = response.choices[0].finish_reason if hasattr(response.choices[0], 'finish_reason') else 'N/A'
-
-        # Check if the model wants to call a tool
-        tool_calls = message.tool_calls if hasattr(message, 'tool_calls') and message.tool_calls else None
-
-        if tool_calls:
+        for turn in range(max_turns):
             logger.info(
-                f"LLM requested tool call(s): {len(tool_calls)} tool(s)",
+                f"=== Agentic Loop - Turn {turn + 1}/{max_turns} ===",
                 extra={'request_id': request_id}
             )
-            for tool_call in tool_calls:
+
+            # Log API call configuration
+            api_config = {
+                "model": "gpt-5",
+                "base_url": str(client.base_url),
+                "messages_count": len(messages)
+            }
+            logger.info(
+                f"Calling OpenAI API - Config: {json.dumps(api_config)}",
+                extra={'request_id': request_id}
+            )
+
+            logger.debug(
+                f"API Request payload - Model: gpt-5 - Messages count: {len(messages)}",
+                extra={'request_id': request_id}
+            )
+
+            api_start_time = time.time()
+            response = client.chat.completions.create(
+                model="gpt-5",
+                messages=messages,
+                tools=TOOLS
+            )
+            api_duration = time.time() - api_start_time
+
+            logger.debug(
+                f"OpenAI API call completed - Duration: {api_duration:.3f}s",
+                extra={'request_id': request_id}
+            )
+
+            # Extract response details
+            message = response.choices[0].message
+            response_content = message.content if message.content else ""
+            finish_reason = response.choices[0].finish_reason if hasattr(response.choices[0], 'finish_reason') else 'N/A'
+
+            # Log token usage details
+            if hasattr(response, 'usage'):
+                token_details = {
+                    "prompt_tokens": response.usage.prompt_tokens,
+                    "completion_tokens": response.usage.completion_tokens,
+                    "total_tokens": response.usage.total_tokens
+                }
                 logger.info(
-                    f"Tool Call - ID: {tool_call.id} - Function: {tool_call.function.name} - "
-                    f"Arguments: {tool_call.function.arguments}",
+                    f"Token usage - {json.dumps(token_details)}",
                     extra={'request_id': request_id}
                 )
 
-        # Log token usage details
-        if hasattr(response, 'usage'):
-            token_details = {
-                "prompt_tokens": response.usage.prompt_tokens,
-                "completion_tokens": response.usage.completion_tokens,
-                "total_tokens": response.usage.total_tokens
-            }
-            logger.info(
-                f"Token usage - {json.dumps(token_details)}",
+            # Check if the model wants to call a tool
+            tool_calls = message.tool_calls if hasattr(message, 'tool_calls') and message.tool_calls else None
+
+            if tool_calls:
+                # Agent decided to call tools
+                print(f"\n[Agent] Decided to call tool: '{tool_calls[0].function.name}'")
+                logger.info(
+                    f"[Agent] Decided to call tool: '{tool_calls[0].function.name}'",
+                    extra={'request_id': request_id}
+                )
+
+                logger.info(
+                    f"LLM requested tool call(s): {len(tool_calls)} tool(s)",
+                    extra={'request_id': request_id}
+                )
+
+                # Add assistant's message with tool calls to conversation
+                messages.append({
+                    "role": "assistant",
+                    "content": response_content,
+                    "tool_calls": [
+                        {
+                            "id": tc.id,
+                            "type": tc.type,
+                            "function": {
+                                "name": tc.function.name,
+                                "arguments": tc.function.arguments
+                            }
+                        }
+                        for tc in tool_calls
+                    ]
+                })
+
+                # Execute each tool call
+                for tool_call in tool_calls:
+                    function_name = tool_call.function.name
+                    function_args = json.loads(tool_call.function.arguments)
+
+                    logger.info(
+                        f"Executing tool - ID: {tool_call.id} - Function: {function_name} - "
+                        f"Arguments: {function_args}",
+                        extra={'request_id': request_id}
+                    )
+
+                    # Execute the web_search function
+                    if function_name == "web_search":
+                        tool_start_time = time.time()
+                        search_result = web_search(function_args.get("query", ""))
+                        tool_duration = time.time() - tool_start_time
+
+                        # Format tool output for logging
+                        tool_output_preview = json.dumps(search_result)[:200] + "..." if len(json.dumps(search_result)) > 200 else json.dumps(search_result)
+
+                        print(f"[System] Tool Output: '{tool_output_preview}'")
+                        logger.info(
+                            f"[System] Tool Output: '{tool_output_preview}'",
+                            extra={'request_id': request_id}
+                        )
+
+                        logger.info(
+                            f"Tool execution completed - Duration: {tool_duration:.3f}s - "
+                            f"Result size: {len(json.dumps(search_result))} bytes",
+                            extra={'request_id': request_id}
+                        )
+
+                        # Add tool result to conversation
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "name": function_name,
+                            "content": json.dumps(search_result)
+                        })
+                    else:
+                        logger.warning(
+                            f"Unknown tool function: {function_name}",
+                            extra={'request_id': request_id}
+                        )
+
+                # Continue to next turn to get LLM's response with tool results
+                continue
+
+            else:
+                # No tool calls - this is the final response
+                final_response = response_content
+
+                print(f"[Agent] Final Answer: '{final_response}'")
+                logger.info(
+                    f"[Agent] Final Answer: '{final_response}'",
+                    extra={'request_id': request_id}
+                )
+
+                logger.info(
+                    f"OpenAI API response received - Duration: {api_duration:.3f}s - "
+                    f"Response length: {len(response_content)} chars - "
+                    f"Model: {response.model} - "
+                    f"Finish reason: {finish_reason} - "
+                    f"Tokens used: {response.usage.total_tokens if hasattr(response, 'usage') else 'N/A'}",
+                    extra={'request_id': request_id}
+                )
+
+                # Log response preview
+                response_preview = response_content[:100] + "..." if len(response_content) > 100 else response_content
+                logger.debug(
+                    f"Response preview: {response_preview}",
+                    extra={'request_id': request_id}
+                )
+
+                # Log response structure details
+                logger.debug(
+                    f"Response structure - Choices count: {len(response.choices)} - "
+                    f"Response ID: {response.id if hasattr(response, 'id') else 'N/A'} - "
+                    f"Created: {response.created if hasattr(response, 'created') else 'N/A'}",
+                    extra={'request_id': request_id}
+                )
+
+                # Exit the loop
+                break
+
+        # If we exhausted all turns without a final response
+        if final_response is None:
+            final_response = "I apologize, but I've reached the maximum number of tool calls. Please try rephrasing your question."
+            logger.warning(
+                f"Max turns ({max_turns}) reached without final response",
                 extra={'request_id': request_id}
             )
 
-        logger.info(
-            f"OpenAI API response received - Duration: {api_duration:.3f}s - "
-            f"Response length: {len(response_content)} chars - "
-            f"Model: {response.model} - "
-            f"Finish reason: {finish_reason} - "
-            f"Tokens used: {response.usage.total_tokens if hasattr(response, 'usage') else 'N/A'}",
-            extra={'request_id': request_id}
-        )
-
-        # Log response preview
-        response_preview = response_content[:100] + "..." if len(response_content) > 100 else response_content
-        logger.debug(
-            f"Response preview: {response_preview}",
-            extra={'request_id': request_id}
-        )
-
-        # Log response structure details
-        logger.debug(
-            f"Response structure - Choices count: {len(response.choices)} - "
-            f"Response ID: {response.id if hasattr(response, 'id') else 'N/A'} - "
-            f"Created: {response.created if hasattr(response, 'created') else 'N/A'}",
-            extra={'request_id': request_id}
-        )
-
         result = {
-            "response": response_content,
-            "finish_reason": finish_reason
+            "response": final_response,
+            "finish_reason": finish_reason,
+            "turns_used": turn + 1
         }
 
-        # Include tool calls if present
-        if tool_calls:
-            result["tool_calls"] = [
-                {
-                    "id": tc.id,
-                    "type": tc.type,
-                    "function": {
-                        "name": tc.function.name,
-                        "arguments": tc.function.arguments
-                    }
-                }
-                for tc in tool_calls
-            ]
-
         logger.debug(
-            f"Returning chat response - Size: {len(json.dumps(result))} bytes",
+            f"Returning chat response - Size: {len(json.dumps(result))} bytes - Turns used: {turn + 1}",
             extra={'request_id': request_id}
         )
 
