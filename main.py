@@ -488,6 +488,42 @@ async def chat(chat_request: ChatRequest, request: Request):
             extra={'request_id': request_id}
         )
 
+        # Print the entire message history that led to this response
+        print("\n" + "=" * 80)
+        print("COMPLETE MESSAGE HISTORY")
+        print("=" * 80)
+        for i, msg in enumerate(messages, 1):
+            print(f"\n--- Message {i} ---")
+            print(f"Role: {msg.get('role', 'N/A')}")
+
+            if msg.get('role') == 'user':
+                print(f"Content: {msg.get('content', 'N/A')}")
+
+            elif msg.get('role') == 'assistant':
+                print(f"Content: {msg.get('content', 'N/A')}")
+                if 'tool_calls' in msg:
+                    print("\nTool Calls:")
+                    for tc in msg['tool_calls']:
+                        print(f"  - ID: {tc.get('id', 'N/A')}")
+                        print(f"    Type: {tc.get('type', 'N/A')}")
+                        print(f"    Function Name: {tc.get('function', {}).get('name', 'N/A')}")
+                        print(f"    Function Arguments: {tc.get('function', {}).get('arguments', 'N/A')}")
+
+            elif msg.get('role') == 'tool':
+                print(f"Tool Call ID: {msg.get('tool_call_id', 'N/A')}")
+                print(f"Tool Name: {msg.get('name', 'N/A')}")
+                print(f"Tool Result (preview): {msg.get('content', 'N/A')[:500]}...")
+
+        print("\n" + "=" * 80)
+        print(f"FINAL RESPONSE TO USER: {final_response}")
+        print("=" * 80 + "\n")
+
+        # Also log the full message history
+        logger.info(
+            f"Complete message history: {json.dumps(messages, indent=2)}",
+            extra={'request_id': request_id}
+        )
+
         return result
 
     except Exception as e:
