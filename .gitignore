@@ -12,6 +12,10 @@ ENV/
 # Environment variables
 .env
 
+# Logs
+*.log
+app.log
+
 # Claude Code
 .claude/
 
