@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat AI</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <button id="new-conversation-btn" class="btn-primary">
+                    + New Conversation
+                </button>
+            </div>
+            <div id="conversation-list" class="conversation-list">
+                <!-- Dynamically populated -->
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-area">
+            <div class="chat-header">
+                <h1>Chat AI</h1>
+            </div>
+            <div id="chat-messages" class="chat-messages">
+                <!-- Dynamically populated messages -->
+                <div id="empty-state" class="empty-state">
+                    <h2>Welcome to Chat AI</h2>
+                    <p>Start a new conversation or select one from the sidebar</p>
+                </div>
+            </div>
+            <div class="chat-input-container">
+                <form id="message-form" class="message-form">
+                    <input
+                        type="text"
+                        id="message-input"
+                        placeholder="Type your message..."
+                        autocomplete="off"
+                        required
+                    />
+                    <button type="submit" id="send-button" class="btn-send">
+                        Send
+                    </button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- Thinking Indicator Template -->
+    <template id="thinking-template">
+        <div class="message assistant thinking-message">
+            <div class="message-content">
+                <div class="thinking-indicator">
+                    <span class="thinking-dot"></span>
+                    <span class="thinking-dot"></span>
+                    <span class="thinking-dot"></span>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="/static/js/storage.js"></script>
+    <script src="/static/js/ui.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

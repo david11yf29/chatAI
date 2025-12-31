@@ -1,4 +1,7 @@
 from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -45,6 +48,18 @@ for handler in root_logger.handlers:
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount static files directory
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 client = OpenAI(
     api_key=os.getenv("SUPER_MIND_API_KEY"),
@@ -170,6 +185,10 @@ TOOLS = [
 
 class ChatRequest(BaseModel):
     user_message: str
+
+@app.get("/")
+async def read_root():
+    return FileResponse("static/index.html")
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
