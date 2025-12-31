@@ -9,6 +9,9 @@ env/
 ENV/
 .venv
 
+# Environment variables
+.env
+
 # Claude Code
 .claude/
 
