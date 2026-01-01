@@ -190,6 +190,11 @@ class ChatRequest(BaseModel):
 async def read_root():
     return FileResponse("static/index.html")
 
+@app.get("/favicon.ico")
+async def favicon():
+    from fastapi.responses import Response
+    return Response(status_code=204)
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     request_id = str(uuid.uuid4())
