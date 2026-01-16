@@ -24,6 +24,7 @@ function renderStocks(stocks) {
         row.innerHTML = `
             <td>${stock.symbol}</td>
             <td>$${stock.price.toFixed(2)}</td>
+            <td>$${stock.buyPrice.toFixed(2)}</td>
         `;
         tbody.appendChild(row);
     });
