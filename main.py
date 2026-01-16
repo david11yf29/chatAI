@@ -186,6 +186,16 @@ TOOLS = [
 class ChatRequest(BaseModel):
     user_message: str
 
+class StockUpdate(BaseModel):
+    symbol: str
+    name: str
+    price: float
+    date: str
+    buyPrice: float
+
+class StocksUpdateRequest(BaseModel):
+    stocks: list[StockUpdate]
+
 @app.get("/")
 async def root():
     return FileResponse("static/index.html")
@@ -195,6 +205,78 @@ async def get_stocks():
     with open("stocks.json", "r") as f:
         data = json.load(f)
     return {"stocks": data["stocks"]}
+
+@app.get("/api/stock-info/{symbol}")
+async def get_stock_info(symbol: str):
+    """Fetch company name based on stock symbol using the configured search source."""
+    symbol = symbol.upper().strip()
+
+    # Read the search source from stocks.json
+    with open("stocks.json", "r") as f:
+        config = json.load(f)
+    search_source = config.get("search", "google finance").lower()
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+    }
+
+    try:
+        with httpx.Client() as http_client:
+            if "google" in search_source:
+                # Try multiple exchanges for Google Finance
+                exchanges = ["NASDAQ", "NYSE", "NYSEARCA", "BATS", "MUTF"]
+                for exchange in exchanges:
+                    url = f"https://www.google.com/finance/quote/{symbol}:{exchange}"
+                    response = http_client.get(url, timeout=10.0, follow_redirects=True, headers=headers)
+
+                    if response.status_code == 200:
+                        soup = BeautifulSoup(response.text, 'html.parser')
+                        title = soup.find('title')
+                        if title:
+                            title_text = title.get_text()
+                            # Title format: "Company Name (SYMBOL) Price & News - Google Finance"
+                            if '(' in title_text and symbol in title_text:
+                                company_name = title_text.split('(')[0].strip()
+                                return {"symbol": symbol, "name": company_name, "source": "google finance"}
+
+                return {"symbol": symbol, "name": symbol, "error": "Could not find on Google Finance"}
+
+            else:
+                # Fallback to Yahoo Finance
+                url = f"https://finance.yahoo.com/quote/{symbol}"
+                response = http_client.get(url, timeout=10.0, follow_redirects=True, headers=headers)
+                response.raise_for_status()
+
+                soup = BeautifulSoup(response.text, 'html.parser')
+                title = soup.find('title')
+                if title:
+                    title_text = title.get_text()
+                    if '(' in title_text:
+                        company_name = title_text.split('(')[0].strip()
+                        return {"symbol": symbol, "name": company_name, "source": "yahoo finance"}
+
+                return {"symbol": symbol, "name": symbol, "error": "Could not find on Yahoo Finance"}
+
+    except Exception as e:
+        logger.error(f"Error fetching stock info for {symbol}: {e}")
+        return {"symbol": symbol, "name": symbol, "error": str(e)}
+
+@app.put("/api/stocks")
+async def update_stocks(request: StocksUpdateRequest):
+    # Read existing data to preserve the search field
+    with open("stocks.json", "r") as f:
+        existing_data = json.load(f)
+
+    # Update stocks while preserving the search field
+    existing_data["stocks"] = [stock.model_dump() for stock in request.stocks]
+
+    # Write back to stocks.json
+    with open("stocks.json", "w") as f:
+        json.dump(existing_data, f, indent=2)
+
+    return {"message": "Stocks updated successfully", "stocks": existing_data["stocks"]}
 
 @app.get("/favicon.ico")
 async def favicon():
