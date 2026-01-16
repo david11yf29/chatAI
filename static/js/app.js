@@ -29,4 +29,7 @@ function renderStocks(stocks) {
     });
 }
 
-document.addEventListener('DOMContentLoaded', fetchStocks);
+document.addEventListener('DOMContentLoaded', () => {
+    fetchStocks();
+    document.getElementById('update-btn').addEventListener('click', fetchStocks);
+});
