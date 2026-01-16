@@ -1,6 +1,4 @@
 from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import OpenAI
@@ -57,9 +55,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Mount static files directory
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 client = OpenAI(
     api_key=os.getenv("SUPER_MIND_API_KEY"),
@@ -185,10 +180,6 @@ TOOLS = [
 
 class ChatRequest(BaseModel):
     user_message: str
-
-@app.get("/")
-async def read_root():
-    return FileResponse("static/index.html")
 
 @app.get("/favicon.ico")
 async def favicon():
