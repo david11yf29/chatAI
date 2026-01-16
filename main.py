@@ -1,5 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -46,6 +48,9 @@ for handler in root_logger.handlers:
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Add CORS middleware
 app.add_middleware(
@@ -180,6 +185,16 @@ TOOLS = [
 
 class ChatRequest(BaseModel):
     user_message: str
+
+@app.get("/")
+async def root():
+    return FileResponse("static/index.html")
+
+@app.get("/api/stocks")
+async def get_stocks():
+    with open("stocks.json", "r") as f:
+        data = json.load(f)
+    return {"stocks": data["stocks"]}
 
 @app.get("/favicon.ico")
 async def favicon():
