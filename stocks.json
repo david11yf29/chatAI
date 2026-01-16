@@ -1,0 +1,26 @@
+{
+  "search": "google finance",
+  "stocks": [
+    {
+      "symbol": "AAPL",
+      "name": "Apple Inc.",
+      "price": 0,
+      "date": "",
+      "buyValue": 0
+    },
+    {
+      "symbol": "GOOGL",
+      "name": "Alphabet Inc.",
+      "price": 0,
+      "date": "",
+      "buyValue": 0
+    },
+    {
+      "symbol": "MSFT",
+      "name": "Microsoft Corporation",
+      "price": 0,
+      "date": "",
+      "buyValue": 0
+    }
+  ]
+}
