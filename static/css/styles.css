@@ -83,3 +83,27 @@ th:nth-child(2),
 th:last-child {
     text-align: right;
 }
+
+.editable-input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    background-color: #fff;
+    box-sizing: border-box;
+}
+
+.editable-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+}
+
+.symbol-input {
+    text-transform: uppercase;
+}
+
+.buy-price-input {
+    text-align: right;
+}

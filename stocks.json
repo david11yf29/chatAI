@@ -1,26 +1,26 @@
 {
-  "search": "google finance",
+  "search": "yahoo finance",
   "stocks": [
     {
       "symbol": "AAPL",
       "name": "Apple Inc.",
-      "price": 0,
+      "price": 0.0,
       "date": "",
-      "buyPrice": 0
+      "buyPrice": 0.0
     },
     {
       "symbol": "GOOGL",
       "name": "Alphabet Inc.",
-      "price": 0,
+      "price": 0.0,
       "date": "",
-      "buyPrice": 0
+      "buyPrice": 0.0
     },
     {
       "symbol": "MSFT",
       "name": "Microsoft Corporation",
-      "price": 0,
+      "price": 0.0,
       "date": "",
-      "buyPrice": 0
+      "buyPrice": 0.0
     }
   ]
 }
