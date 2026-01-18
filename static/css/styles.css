@@ -75,11 +75,13 @@ tr:hover {
 }
 
 td:nth-child(2),
+td:nth-child(3),
 td:last-child {
     text-align: right;
 }
 
 th:nth-child(2),
+th:nth-child(3),
 th:last-child {
     text-align: right;
 }
@@ -106,4 +108,14 @@ th:last-child {
 
 .buy-price-input {
     text-align: right;
+}
+
+.positive-change {
+    color: #28a745;
+    font-weight: 500;
+}
+
+.negative-change {
+    color: #dc3545;
+    font-weight: 500;
 }
