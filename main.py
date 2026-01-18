@@ -327,6 +327,96 @@ async def update_stocks(request: StocksUpdateRequest):
 
     return {"message": "Stocks updated successfully", "stocks": updated_stocks}
 
+def generate_stock_email_html():
+    """Generate HTML email content with stock portfolio sections."""
+    return """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stocker Tracker Report</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background-color: #1a73e8;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .section {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .section:last-child {
+            border-bottom: none;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin: 0 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #1a73e8;
+        }
+        .section-content {
+            color: #666;
+            font-size: 14px;
+        }
+        .footer {
+            background-color: #f9f9f9;
+            padding: 15px;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Stocker Tracker</h1>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Daily Price Change</h2>
+            <div class="section-content">
+                <!-- Content will be added here -->
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Diff to Buy Price</h2>
+            <div class="section-content">
+                <!-- Content will be added here -->
+            </div>
+        </div>
+
+        <div class="footer">
+            Stocker Tracker Report
+        </div>
+    </div>
+</body>
+</html>
+"""
+
 @app.post("/api/send-test-email")
 async def send_test_email():
     """Send a test email to all addresses in the _emailList field of stockapp.json using Resend."""
@@ -342,6 +432,9 @@ async def send_test_email():
     if not resend_api_key:
         return {"status": "error", "message": "RESEND_API_KEY not configured"}
 
+    # Generate email HTML content
+    email_html = generate_stock_email_html()
+
     # Send via Resend API
     async with httpx.AsyncClient() as client:
         response = await client.post(
@@ -353,8 +446,8 @@ async def send_test_email():
             json={
                 "from": "onboarding@resend.dev",
                 "to": email_list,
-                "subject": "Stocker Tracker Testing",
-                "html": "<p>This is a test email from <strong>Stocker Tracker</strong>.</p>"
+                "subject": "Stocker Tracker Report",
+                "html": email_html
             }
         )
 
