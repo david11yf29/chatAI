@@ -191,6 +191,7 @@ class StockUpdate(BaseModel):
     symbol: str
     name: str
     price: float
+    changePercent: float | None = None
     date: str
     buyPrice: float
 
@@ -289,14 +290,24 @@ async def update_stocks(request: StocksUpdateRequest):
                 info = ticker.info
                 stock_dict["name"] = info.get("longName") or info.get("shortName") or symbol
 
-                # Get last closed price
-                history = ticker.history(period="1d")
+                # Get last closed price and calculate percentage change
+                history = ticker.history(period="5d")
                 if not history.empty:
                     stock_dict["price"] = round(float(history['Close'].iloc[-1]), 2)
                     # Get the actual date of the closed price from yfinance
                     price_date = history.index[-1].strftime("%Y-%m-%d")
                     stock_dict["date"] = price_date
-                    logger.info(f"Fetched price for {symbol}: {stock_dict['price']} (date: {price_date})")
+
+                    # Calculate percentage change from previous day
+                    if len(history) >= 2:
+                        current_close = float(history['Close'].iloc[-1])
+                        previous_close = float(history['Close'].iloc[-2])
+                        change_percent = ((current_close - previous_close) / previous_close) * 100
+                        stock_dict["changePercent"] = round(change_percent, 2)
+                    else:
+                        stock_dict["changePercent"] = None
+
+                    logger.info(f"Fetched price for {symbol}: {stock_dict['price']} (date: {price_date}, change: {stock_dict.get('changePercent')}%)")
             except Exception as e:
                 logger.error(f"yfinance error for {symbol}: {e}")
 

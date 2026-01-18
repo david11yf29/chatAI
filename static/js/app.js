@@ -24,9 +24,20 @@ function renderStocks(stocks) {
 
     stocks.forEach((stock, index) => {
         const row = document.createElement('tr');
+
+        // Format change percentage with sign and color
+        let changeDisplay = '-';
+        let changeClass = '';
+        if (stock.changePercent !== null && stock.changePercent !== undefined) {
+            const sign = stock.changePercent >= 0 ? '+' : '';
+            changeDisplay = `${sign}${stock.changePercent.toFixed(2)}%`;
+            changeClass = stock.changePercent >= 0 ? 'positive-change' : 'negative-change';
+        }
+
         row.innerHTML = `
             <td><input type="text" class="editable-input symbol-input" data-index="${index}" value="${stock.symbol}"></td>
             <td>$${stock.price.toFixed(2)}</td>
+            <td class="${changeClass}">${changeDisplay}</td>
             <td><input type="number" class="editable-input buy-price-input" data-index="${index}" value="${stock.buyPrice.toFixed(2)}" step="0.01"></td>
         `;
         tbody.appendChild(row);

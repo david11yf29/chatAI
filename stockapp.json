@@ -9,6 +9,7 @@
       "symbol": "AAOI",
       "name": "Applied Optoelectronics, Inc.",
       "price": 37.04,
+      "changePercent": null,
       "date": "2026-01-18",
       "buyPrice": 0.0
     },
@@ -16,6 +17,7 @@
       "symbol": "SNDK",
       "name": "Sandisk Corporation",
       "price": 413.62,
+      "changePercent": null,
       "date": "2026-01-18",
       "buyPrice": 0.0
     },
@@ -23,6 +25,7 @@
       "symbol": "TSLA",
       "name": "Tesla, Inc.",
       "price": 437.5,
+      "changePercent": null,
       "date": "2026-01-18",
       "buyPrice": 0.0
     }
