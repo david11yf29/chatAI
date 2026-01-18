@@ -15,8 +15,10 @@ for stock in data["stocks"]:
             history = ticker.history(period="1d")
             if not history.empty:
                 stock["price"] = round(float(history['Close'].iloc[-1]), 2)
-                stock["date"] = datetime.now().strftime("%Y-%m-%d")
-                print(f"Updated {symbol}: ${stock['price']}")
+                # Get the actual date of the closed price from yfinance
+                price_date = history.index[-1].strftime("%Y-%m-%d")
+                stock["date"] = price_date
+                print(f"Updated {symbol}: ${stock['price']} (date: {price_date})")
             else:
                 print(f"No price data for {symbol}")
         except Exception as e:

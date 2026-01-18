@@ -293,8 +293,10 @@ async def update_stocks(request: StocksUpdateRequest):
                 history = ticker.history(period="1d")
                 if not history.empty:
                     stock_dict["price"] = round(float(history['Close'].iloc[-1]), 2)
-                    logger.info(f"Fetched price for {symbol}: {stock_dict['price']}")
-                stock_dict["date"] = datetime.now().strftime("%Y-%m-%d")
+                    # Get the actual date of the closed price from yfinance
+                    price_date = history.index[-1].strftime("%Y-%m-%d")
+                    stock_dict["date"] = price_date
+                    logger.info(f"Fetched price for {symbol}: {stock_dict['price']} (date: {price_date})")
             except Exception as e:
                 logger.error(f"yfinance error for {symbol}: {e}")
 
