@@ -202,7 +202,7 @@ async def root():
 
 @app.get("/api/stocks")
 async def get_stocks():
-    with open("stocks.json", "r") as f:
+    with open("stockapp.json", "r") as f:
         data = json.load(f)
     return {"stocks": data["stocks"]}
 
@@ -211,8 +211,8 @@ async def get_stock_info(symbol: str):
     """Fetch company name based on stock symbol using the configured search source."""
     symbol = symbol.upper().strip()
 
-    # Read the search source from stocks.json
-    with open("stocks.json", "r") as f:
+    # Read the search source from stockapp.json
+    with open("stockapp.json", "r") as f:
         config = json.load(f)
     search_source = config.get("search", "google finance").lower()
 
@@ -266,14 +266,14 @@ async def get_stock_info(symbol: str):
 @app.put("/api/stocks")
 async def update_stocks(request: StocksUpdateRequest):
     # Read existing data to preserve the search field
-    with open("stocks.json", "r") as f:
+    with open("stockapp.json", "r") as f:
         existing_data = json.load(f)
 
     # Update stocks while preserving the search field
     existing_data["stocks"] = [stock.model_dump() for stock in request.stocks]
 
-    # Write back to stocks.json
-    with open("stocks.json", "w") as f:
+    # Write back to stockapp.json
+    with open("stockapp.json", "w") as f:
         json.dump(existing_data, f, indent=2)
 
     return {"message": "Stocks updated successfully", "stocks": existing_data["stocks"]}
