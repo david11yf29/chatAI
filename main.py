@@ -265,18 +265,47 @@ async def get_stock_info(symbol: str):
 
 @app.put("/api/stocks")
 async def update_stocks(request: StocksUpdateRequest):
-    # Read existing data to preserve the search field
+    """Update stocks - fetches prices for changed symbols and persists to stockapp.json (source of truth)."""
+    # Read existing data to preserve the search field and _metadata
     with open("stockapp.json", "r") as f:
         existing_data = json.load(f)
 
-    # Update stocks while preserving the search field
-    existing_data["stocks"] = [stock.model_dump() for stock in request.stocks]
+    existing_stocks = existing_data.get("stocks", [])
+    updated_stocks = []
 
-    # Write back to stockapp.json
+    for i, stock in enumerate(request.stocks):
+        stock_dict = stock.model_dump()
+
+        # Check if symbol changed (compare with existing)
+        symbol_changed = (i >= len(existing_stocks) or
+                         stock.symbol.upper() != existing_stocks[i].get("symbol", "").upper())
+
+        if symbol_changed:
+            # Fetch from yfinance for changed symbols
+            symbol = stock.symbol.upper().strip()
+            logger.info(f"Symbol changed at index {i}, fetching data for {symbol}")
+            try:
+                ticker = yf.Ticker(symbol)
+                info = ticker.info
+                stock_dict["name"] = info.get("longName") or info.get("shortName") or symbol
+
+                # Get last closed price
+                history = ticker.history(period="1d")
+                if not history.empty:
+                    stock_dict["price"] = round(float(history['Close'].iloc[-1]), 2)
+                    logger.info(f"Fetched price for {symbol}: {stock_dict['price']}")
+                stock_dict["date"] = datetime.now().strftime("%Y-%m-%d")
+            except Exception as e:
+                logger.error(f"yfinance error for {symbol}: {e}")
+
+        updated_stocks.append(stock_dict)
+
+    # Update stockapp.json (SOURCE OF TRUTH)
+    existing_data["stocks"] = updated_stocks
     with open("stockapp.json", "w") as f:
         json.dump(existing_data, f, indent=2)
 
-    return {"message": "Stocks updated successfully", "stocks": existing_data["stocks"]}
+    return {"message": "Stocks updated successfully", "stocks": updated_stocks}
 
 @app.get("/favicon.ico")
 async def favicon():

@@ -1,5 +1,4 @@
 let currentStocks = [];
-let originalSymbols = [];
 
 async function fetchStocks() {
     console.log('Fetching stocks...');
@@ -10,7 +9,6 @@ async function fetchStocks() {
         console.log('Data received:', data);
         if (data.stocks && data.stocks.length > 0) {
             currentStocks = data.stocks;
-            originalSymbols = data.stocks.map(s => s.symbol);
             renderStocks(currentStocks);
         } else {
             console.error('No stocks in response');
@@ -35,17 +33,14 @@ function renderStocks(stocks) {
     });
 
     // Add event listeners to inputs
+    // Symbol input change handler - just store in memory (no API call)
+    // Name and price will be fetched when "Update" is clicked
     document.querySelectorAll('.symbol-input').forEach(input => {
-        input.addEventListener('change', async (e) => {
+        input.addEventListener('change', (e) => {
             const index = parseInt(e.target.dataset.index);
             const newSymbol = e.target.value.toUpperCase().trim();
             e.target.value = newSymbol;
-
-            if (newSymbol && newSymbol !== currentStocks[index].symbol) {
-                currentStocks[index].symbol = newSymbol;
-                // Fetch company name from API
-                await fetchAndUpdateCompanyName(index, newSymbol);
-            }
+            currentStocks[index].symbol = newSymbol;
         });
     });
 
@@ -57,49 +52,12 @@ function renderStocks(stocks) {
     });
 }
 
-async function fetchAndUpdateCompanyName(index, symbol) {
-    console.log(`Fetching company name for ${symbol}...`);
-    try {
-        const response = await fetch(`/api/stock-info/${symbol}`);
-        const data = await response.json();
-        console.log('Stock info received:', data);
-
-        if (data.name && !data.error) {
-            currentStocks[index].name = data.name;
-            console.log(`Updated name for ${symbol}: ${data.name}`);
-        } else {
-            console.warn(`Could not find company name for ${symbol}`);
-        }
-    } catch (error) {
-        console.error(`Error fetching stock info for ${symbol}:`, error);
-    }
-}
-
 async function saveStocks() {
     const updateBtn = document.getElementById('update-btn');
     updateBtn.disabled = true;
-
-    // First, check if any symbols have changed and fetch their company names
-    const symbolsToLookup = [];
-    for (let i = 0; i < currentStocks.length; i++) {
-        const currentSymbol = currentStocks[i].symbol.toUpperCase().trim();
-        if (currentSymbol !== originalSymbols[i]) {
-            symbolsToLookup.push({ index: i, symbol: currentSymbol });
-        }
-    }
-
-    if (symbolsToLookup.length > 0) {
-        updateBtn.textContent = 'Looking up...';
-        console.log('Fetching company names for changed symbols:', symbolsToLookup);
-
-        // Fetch all company names in parallel
-        await Promise.all(symbolsToLookup.map(async ({ index, symbol }) => {
-            await fetchAndUpdateCompanyName(index, symbol);
-        }));
-    }
+    updateBtn.textContent = 'Saving...';
 
     console.log('Saving stocks...', currentStocks);
-    updateBtn.textContent = 'Saving...';
 
     try {
         const response = await fetch('/api/stocks', {
@@ -113,8 +71,10 @@ async function saveStocks() {
         if (response.ok) {
             const data = await response.json();
             console.log('Stocks saved successfully:', data);
-            // Update originalSymbols to reflect the saved state
-            originalSymbols = currentStocks.map(s => s.symbol);
+
+            // Re-fetch from source of truth to get updated prices
+            await fetchStocks();
+
             updateBtn.textContent = 'Saved!';
             setTimeout(() => {
                 updateBtn.textContent = 'Update';
