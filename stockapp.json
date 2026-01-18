@@ -11,7 +11,8 @@
       "price": 37.04,
       "changePercent": null,
       "date": "2026-01-18",
-      "buyPrice": 0.0
+      "buyPrice": 33.0,
+      "diff": 10.91
     },
     {
       "symbol": "SNDK",
@@ -19,15 +20,17 @@
       "price": 413.62,
       "changePercent": null,
       "date": "2026-01-18",
-      "buyPrice": 0.0
+      "buyPrice": 400.0,
+      "diff": 3.29
     },
     {
-      "symbol": "TSLA",
-      "name": "Tesla, Inc.",
-      "price": 437.5,
-      "changePercent": null,
-      "date": "2026-01-18",
-      "buyPrice": 0.0
+      "symbol": "NFLX",
+      "name": "Netflix, Inc.",
+      "price": 88.0,
+      "changePercent": -0.06,
+      "date": "2026-01-16",
+      "buyPrice": 70.0,
+      "diff": 20.45
     }
   ]
 }
