@@ -4,3 +4,4 @@ openai
 python-dotenv
 httpx
 beautifulsoup4
+yfinance

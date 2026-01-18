@@ -15,6 +15,7 @@ import sys
 import httpx
 from bs4 import BeautifulSoup
 import re
+import yfinance as yf
 
 load_dotenv()
 
@@ -244,20 +245,19 @@ async def get_stock_info(symbol: str):
                 return {"symbol": symbol, "name": symbol, "error": "Could not find on Google Finance"}
 
             else:
-                # Fallback to Yahoo Finance
-                url = f"https://finance.yahoo.com/quote/{symbol}"
-                response = http_client.get(url, timeout=10.0, follow_redirects=True, headers=headers)
-                response.raise_for_status()
+                # Use yfinance for Yahoo Finance
+                pass  # Exit the httpx client context, use yfinance below
 
-                soup = BeautifulSoup(response.text, 'html.parser')
-                title = soup.find('title')
-                if title:
-                    title_text = title.get_text()
-                    if '(' in title_text:
-                        company_name = title_text.split('(')[0].strip()
-                        return {"symbol": symbol, "name": company_name, "source": "yahoo finance"}
-
-                return {"symbol": symbol, "name": symbol, "error": "Could not find on Yahoo Finance"}
+        # Use yfinance library for Yahoo Finance
+        if "yahoo" in search_source:
+            try:
+                ticker = yf.Ticker(symbol)
+                info = ticker.info
+                company_name = info.get("longName") or info.get("shortName") or symbol
+                return {"symbol": symbol, "name": company_name, "source": "yahoo finance (yfinance)"}
+            except Exception as yf_error:
+                logger.error(f"yfinance error for {symbol}: {yf_error}")
+                return {"symbol": symbol, "name": symbol, "error": f"Could not find on Yahoo Finance: {yf_error}"}
 
     except Exception as e:
         logger.error(f"Error fetching stock info for {symbol}: {e}")
