@@ -1,5 +1,7 @@
 {
-  "_emailList": ["david11yf29@gmail.com"],
+  "_emailList": [
+    "david11yf29@gmail.com"
+  ],
   "_metadata": {
     "description": "Stock portfolio tracking data",
     "sourceOfTruth": "This file is the single source of truth for all stock data. All changes must be persisted here before being returned to the frontend."
@@ -7,31 +9,31 @@
   "search": "yahoo finance",
   "stocks": [
     {
-      "symbol": "AAOI",
-      "name": "Applied Optoelectronics, Inc.",
-      "price": 37.04,
-      "changePercent": null,
-      "date": "2026-01-18",
-      "buyPrice": 33.0,
-      "diff": 10.91
-    },
-    {
       "symbol": "SNDK",
       "name": "Sandisk Corporation",
       "price": 413.62,
-      "changePercent": null,
-      "date": "2026-01-18",
-      "buyPrice": 400.0,
-      "diff": 3.29
+      "changePercent": 1.07,
+      "date": "2026-01-16",
+      "buyPrice": 33.0,
+      "diff": 92.02
     },
     {
-      "symbol": "NFLX",
-      "name": "Netflix, Inc.",
-      "price": 88.0,
-      "changePercent": -0.06,
+      "symbol": "AAOI",
+      "name": "Applied Optoelectronics, Inc.",
+      "price": 37.04,
+      "changePercent": 0.11,
+      "date": "2026-01-16",
+      "buyPrice": 35.0,
+      "diff": 5.51
+    },
+    {
+      "symbol": "PLTR",
+      "name": "Palantir Technologies Inc.",
+      "price": 170.96,
+      "changePercent": -3.45,
       "date": "2026-01-16",
       "buyPrice": 70.0,
-      "diff": 20.45
+      "diff": 59.05
     }
   ]
 }
