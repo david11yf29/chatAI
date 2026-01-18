@@ -36,7 +36,7 @@ function renderStocks(stocks) {
     // Symbol input change handler - just store in memory (no API call)
     // Name and price will be fetched when "Update" is clicked
     document.querySelectorAll('.symbol-input').forEach(input => {
-        input.addEventListener('change', (e) => {
+        input.addEventListener('input', (e) => {
             const index = parseInt(e.target.dataset.index);
             const newSymbol = e.target.value.toUpperCase().trim();
             e.target.value = newSymbol;
@@ -45,7 +45,7 @@ function renderStocks(stocks) {
     });
 
     document.querySelectorAll('.buy-price-input').forEach(input => {
-        input.addEventListener('change', (e) => {
+        input.addEventListener('input', (e) => {
             const index = parseInt(e.target.dataset.index);
             currentStocks[index].buyPrice = parseFloat(e.target.value) || 0;
         });
