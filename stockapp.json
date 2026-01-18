@@ -1,4 +1,5 @@
 {
+  "_emailList": ["david11yf29@gmail.com"],
   "_metadata": {
     "description": "Stock portfolio tracking data",
     "sourceOfTruth": "This file is the single source of truth for all stock data. All changes must be persisted here before being returned to the frontend."
