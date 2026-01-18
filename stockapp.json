@@ -2,22 +2,22 @@
   "search": "yahoo finance",
   "stocks": [
     {
-      "symbol": "AAPL",
-      "name": "Apple Inc.",
+      "symbol": "AAOI",
+      "name": "Applied Optoelectronics, Inc.",
       "price": 0.0,
       "date": "",
       "buyPrice": 0.0
     },
     {
-      "symbol": "GOOGL",
-      "name": "Alphabet Inc.",
+      "symbol": "SNDK",
+      "name": "Sandisk Corporation",
       "price": 0.0,
       "date": "",
       "buyPrice": 0.0
     },
     {
-      "symbol": "MSFT",
-      "name": "Microsoft Corporation",
+      "symbol": "TSLA",
+      "name": "Tesla, Inc.",
       "price": 0.0,
       "date": "",
       "buyPrice": 0.0
