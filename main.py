@@ -311,6 +311,13 @@ async def update_stocks(request: StocksUpdateRequest):
             except Exception as e:
                 logger.error(f"yfinance error for {symbol}: {e}")
 
+        # Always calculate diff: percentage current price needs to drop to reach buyPrice
+        price = stock_dict.get("price", 0)
+        buy_price = stock_dict.get("buyPrice", 0)
+        if price > 0:
+            diff = round(((price - buy_price) / price) * 100, 2)
+            stock_dict["diff"] = diff
+
         updated_stocks.append(stock_dict)
 
     # Update stockapp.json (SOURCE OF TRUTH)
