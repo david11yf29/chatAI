@@ -327,6 +327,42 @@ async def update_stocks(request: StocksUpdateRequest):
 
     return {"message": "Stocks updated successfully", "stocks": updated_stocks}
 
+@app.post("/api/send-test-email")
+async def send_test_email():
+    """Send a test email to all addresses in the _emailList field of stockapp.json using Resend."""
+    # Load email list from stockapp.json
+    with open("stockapp.json", "r") as f:
+        data = json.load(f)
+    email_list = data.get("_emailList", [])
+
+    if not email_list:
+        return {"status": "error", "message": "No email addresses found in _emailList"}
+
+    resend_api_key = os.getenv("RESEND_API_KEY")
+    if not resend_api_key:
+        return {"status": "error", "message": "RESEND_API_KEY not configured"}
+
+    # Send via Resend API
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {resend_api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "from": "onboarding@resend.dev",
+                "to": email_list,
+                "subject": "Stocker Tracker Testing",
+                "html": "<p>This is a test email from <strong>Stocker Tracker</strong>.</p>"
+            }
+        )
+
+    if response.status_code == 200:
+        return {"status": "sent", "recipients": email_list, "response": response.json()}
+    else:
+        return {"status": "error", "code": response.status_code, "message": response.text}
+
 @app.get("/favicon.ico")
 async def favicon():
     from fastapi.responses import Response
