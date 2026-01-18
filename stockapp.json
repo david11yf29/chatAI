@@ -1,4 +1,8 @@
 {
+  "_metadata": {
+    "description": "Stock portfolio tracking data",
+    "sourceOfTruth": "This file is the single source of truth for all stock data. All changes must be persisted here before being returned to the frontend."
+  },
   "search": "yahoo finance",
   "stocks": [
     {
@@ -18,8 +22,8 @@
     {
       "symbol": "TSLA",
       "name": "Tesla, Inc.",
-      "price": 0.0,
-      "date": "",
+      "price": 437.5,
+      "date": "2026-01-18",
       "buyPrice": 0.0
     }
   ]
