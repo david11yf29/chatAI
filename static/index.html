@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock Tracker</title>
-    <link rel="stylesheet" href="/static/css/styles.css?v=15">
+    <link rel="stylesheet" href="/static/css/styles.css?v=16">
 </head>
 <body>
     <div class="container">
+        <div id="loading-overlay" class="loading-overlay hidden">
+            <div class="spinner"></div>
+        </div>
         <h1>Stock Tracker</h1>
         <table id="stock-table">
             <thead>
@@ -29,6 +32,6 @@
             <button id="send-email-btn">Send Email</button>
         </div>
     </div>
-    <script src="/static/js/app.js?v=13"></script>
+    <script src="/static/js/app.js?v=14"></script>
 </body>
 </html>

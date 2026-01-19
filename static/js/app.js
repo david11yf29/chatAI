@@ -1,5 +1,14 @@
 let currentStocks = [];
 
+function setLoading(isLoading) {
+    const overlay = document.getElementById('loading-overlay');
+    if (isLoading) {
+        overlay.classList.remove('hidden');
+    } else {
+        overlay.classList.add('hidden');
+    }
+}
+
 async function fetchStocks() {
     console.log('Fetching stocks...');
     try {
@@ -121,6 +130,7 @@ async function saveStocks() {
     const updateBtn = document.getElementById('update-btn');
     updateBtn.disabled = true;
     updateBtn.textContent = 'Saving...';
+    setLoading(true);
 
     console.log('Saving stocks...', currentStocks);
 
@@ -140,6 +150,7 @@ async function saveStocks() {
             // Re-fetch from source of truth to get updated prices
             await fetchStocks();
 
+            setLoading(false);
             updateBtn.textContent = 'Saved!';
             setTimeout(() => {
                 updateBtn.textContent = 'Update';
@@ -150,6 +161,7 @@ async function saveStocks() {
         }
     } catch (error) {
         console.error('Error saving stocks:', error);
+        setLoading(false);
         updateBtn.textContent = 'Error!';
         setTimeout(() => {
             updateBtn.textContent = 'Update';
@@ -162,6 +174,7 @@ async function updateEmail() {
     const updateEmailBtn = document.getElementById('update-email-btn');
     updateEmailBtn.disabled = true;
     updateEmailBtn.textContent = 'Updating...';
+    setLoading(true);
 
     console.log('Updating email alerts...');
 
@@ -174,6 +187,7 @@ async function updateEmail() {
             const data = await response.json();
             console.log('Email updated successfully:', data);
 
+            setLoading(false);
             updateEmailBtn.textContent = 'Updated!';
             setTimeout(() => {
                 updateEmailBtn.textContent = 'Update Email';
@@ -184,6 +198,7 @@ async function updateEmail() {
         }
     } catch (error) {
         console.error('Error updating email:', error);
+        setLoading(false);
         updateEmailBtn.textContent = 'Error!';
         setTimeout(() => {
             updateEmailBtn.textContent = 'Update Email';
@@ -196,6 +211,7 @@ async function sendEmail() {
     const sendEmailBtn = document.getElementById('send-email-btn');
     sendEmailBtn.disabled = true;
     sendEmailBtn.textContent = 'Sending...';
+    setLoading(true);
 
     console.log('Sending test email...');
 
@@ -208,6 +224,7 @@ async function sendEmail() {
             const data = await response.json();
             console.log('Email sent successfully:', data);
 
+            setLoading(false);
             sendEmailBtn.textContent = 'Sent!';
             setTimeout(() => {
                 sendEmailBtn.textContent = 'Send Email';
@@ -218,6 +235,7 @@ async function sendEmail() {
         }
     } catch (error) {
         console.error('Error sending email:', error);
+        setLoading(false);
         sendEmailBtn.textContent = 'Error!';
         setTimeout(() => {
             sendEmailBtn.textContent = 'Send Email';
