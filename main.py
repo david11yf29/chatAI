@@ -311,11 +311,11 @@ async def update_stocks(request: StocksUpdateRequest):
             except Exception as e:
                 logger.error(f"yfinance error for {symbol}: {e}")
 
-        # Always calculate diff: percentage current price needs to drop to reach buyPrice
+        # Always calculate diff: percentage difference from buy price (negative = above buy price)
         price = stock_dict.get("price", 0)
         buy_price = stock_dict.get("buyPrice", 0)
         if price > 0:
-            diff = round(((price - buy_price) / price) * 100, 2)
+            diff = round(((buy_price - price) / price) * 100, 2)
             stock_dict["diff"] = diff
 
         updated_stocks.append(stock_dict)
@@ -503,8 +503,140 @@ async def update_email():
         "diffToBuyPriceCount": len(diff_to_buy)
     }
 
+# ============================================================================
+# Apple-Inspired Email Template Helper Functions
+# ============================================================================
+
+def format_price(price: float) -> str:
+    """Format price as $X,XXX.XX"""
+    return f"${price:,.2f}"
+
+
+def format_change_percent(change: float) -> tuple[str, str]:
+    """Return (formatted_string, color) for daily price change."""
+    if change >= 0:
+        return f"+{change:.2f}%", "#34c759"  # Apple Green
+    else:
+        return f"{change:.2f}%", "#ff3b30"  # Apple Red
+
+
+def format_diff_percent(diff: float) -> tuple[str, str]:
+    """Return (formatted_string, color) for diff to buy price.
+    Negative = price above buy price (red, not ideal to buy)
+    Positive = price below buy price (green, good to buy)
+    """
+    if diff >= 0:
+        return f"+{diff:.1f}%", "#34c759"  # Apple Green (below buy price - good to buy)
+    else:
+        return f"{diff:.1f}%", "#ff3b30"  # Apple Red (above buy price - not ideal)
+
+
+def parse_news_headlines(news_string: str) -> list[str]:
+    """Parse '- headline' format into list of headlines."""
+    if not news_string:
+        return []
+    headlines = []
+    for line in news_string.strip().split('\n'):
+        line = line.strip()
+        if line.startswith('- '):
+            headlines.append(line[2:])
+        elif line:
+            headlines.append(line)
+    return headlines
+
+
+def generate_stock_card_html(stock: dict) -> str:
+    """Generate HTML for a Daily Price Change stock card."""
+    symbol = stock.get("symbol", "")
+    name = stock.get("name", "")
+    price = stock.get("price", 0)
+    change_percent = stock.get("changePercent", 0)
+    news = stock.get("news", "")
+
+    formatted_price = format_price(price)
+    change_str, change_color = format_change_percent(change_percent)
+    headlines = parse_news_headlines(news)
+
+    # Build news section HTML
+    news_html = ""
+    if headlines:
+        news_items = "".join([
+            f'''<tr>
+                <td style="padding: 8px 0 8px 16px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; color: #1d1d1f; line-height: 1.5; border-left: 3px solid #0071e3;">
+                    {headline}
+                </td>
+            </tr>'''
+            for headline in headlines[:3]
+        ])
+        news_html = f'''
+        <tr>
+            <td colspan="2" style="padding-top: 16px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td style="padding-bottom: 8px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 12px; font-weight: 600; color: #86868b; text-transform: uppercase; letter-spacing: 0.5px;">
+                            Latest News
+                        </td>
+                    </tr>
+                    {news_items}
+                </table>
+            </td>
+        </tr>'''
+
+    return f'''
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f7; border-radius: 12px; margin-bottom: 16px;">
+        <tr>
+            <td style="padding: 24px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td style="vertical-align: top;">
+                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 600; color: #1d1d1f;">{symbol}</span>
+                            <br>
+                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; color: #86868b;">{name}</span>
+                        </td>
+                        <td style="text-align: right; vertical-align: top;">
+                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 28px; font-weight: 500; color: #1d1d1f;">{formatted_price}</span>
+                            <br>
+                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 500; color: {change_color};">{change_str}</span>
+                        </td>
+                    </tr>
+                    {news_html}
+                </table>
+            </td>
+        </tr>
+    </table>'''
+
+
+def generate_diff_card_html(stock: dict) -> str:
+    """Generate HTML for a Diff to Buy Price stock card."""
+    symbol = stock.get("symbol", "")
+    price = stock.get("price", 0)
+    diff = stock.get("diff", 0)
+
+    formatted_price = format_price(price)
+    diff_str, diff_color = format_diff_percent(diff)
+
+    return f'''
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f7; border-radius: 12px; margin-bottom: 12px;">
+        <tr>
+            <td style="padding: 20px 24px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td style="vertical-align: middle;">
+                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 600; color: #1d1d1f;">{symbol}</span>
+                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 17px; color: #86868b; margin-left: 12px;">{formatted_price}</span>
+                        </td>
+                        <td style="text-align: right; vertical-align: middle;">
+                            <span style="display: inline-block; padding: 6px 12px; background-color: {diff_color}; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; border-radius: 6px;">{diff_str}</span>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>'''
+
+
 def generate_stock_email_html():
-    """Generate HTML email content with stock portfolio sections from email.json."""
+    """Generate Apple-inspired HTML email content with stock portfolio sections from email.json."""
     # Load email content from email.json
     with open("email.json", "r") as f:
         email_config = json.load(f)
@@ -513,106 +645,174 @@ def generate_stock_email_html():
     daily_price_change = content.get("dailyPriceChange", [])
     diff_to_buy_price = content.get("diffToBuyPrice", [])
 
-    # Generate content sections (empty for now, rules not yet implemented)
-    daily_change_html = ""
+    # Generate Daily Price Change cards
+    daily_change_cards = ""
     if daily_price_change:
-        daily_change_html = "<br>".join(str(item) for item in daily_price_change)
+        daily_change_cards = "".join(generate_stock_card_html(stock) for stock in daily_price_change)
     else:
-        daily_change_html = "<!-- Content will be added here -->"
+        daily_change_cards = '''
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f7; border-radius: 12px;">
+            <tr>
+                <td style="padding: 32px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 15px; color: #86868b;">
+                    No significant price changes today
+                </td>
+            </tr>
+        </table>'''
 
-    diff_html = ""
+    # Generate Diff to Buy Price cards
+    diff_cards = ""
     if diff_to_buy_price:
-        diff_html = "<br>".join(str(item) for item in diff_to_buy_price)
+        diff_cards = "".join(generate_diff_card_html(stock) for stock in diff_to_buy_price)
     else:
-        diff_html = "<!-- Content will be added here -->"
+        diff_cards = '''
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f7; border-radius: 12px;">
+            <tr>
+                <td style="padding: 32px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 15px; color: #86868b;">
+                    No stocks in portfolio
+                </td>
+            </tr>
+        </table>'''
 
-    return f"""
-<!DOCTYPE html>
-<html>
+    # Get current date for footer
+    current_date = datetime.now().strftime("%B %d, %Y")
+
+    return f'''<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stocker Tracker Report</title>
-    <style>
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background-color: #f5f5f5;
-            margin: 0;
-            padding: 20px;
-        }}
-        .container {{
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }}
-        .header {{
-            background-color: #1a73e8;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }}
-        .header h1 {{
-            margin: 0;
-            font-size: 24px;
-        }}
-        .section {{
-            padding: 20px;
-            border-bottom: 1px solid #e0e0e0;
-        }}
-        .section:last-child {{
-            border-bottom: none;
-        }}
-        .section-title {{
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin: 0 0 15px 0;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #1a73e8;
-        }}
-        .section-content {{
-            color: #666;
-            font-size: 14px;
-        }}
-        .footer {{
-            background-color: #f9f9f9;
-            padding: 15px;
-            text-align: center;
-            font-size: 12px;
-            color: #999;
-        }}
-    </style>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="x-apple-disable-message-reformatting">
+    <title>Stock Tracker Report</title>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Stocker Tracker</h1>
-        </div>
+<body style="margin: 0; padding: 0; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+    <!-- Outer wrapper table for centering -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff;">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+                <!-- Main container - max-width 600px -->
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; width: 100%;">
 
-        <div class="section">
-            <h2 class="section-title">Daily Price Change</h2>
-            <div class="section-content">
-                {daily_change_html}
-            </div>
-        </div>
+                    <!-- Header Section -->
+                    <tr>
+                        <td align="center" style="padding: 0 0 48px 0;">
+                            <!-- Stock Tracker Icon -->
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="padding-bottom: 16px;">
+                                        <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #0071e3 0%, #40a9ff 100%); border-radius: 12px; display: inline-block; text-align: center; line-height: 56px;">
+                                            <span style="font-size: 28px; color: #ffffff;">&#x1F4C8;</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                            <h1 style="margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 32px; font-weight: 600; color: #1d1d1f; letter-spacing: -0.5px;">
+                                Stock Tracker
+                            </h1>
+                            <p style="margin: 8px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 17px; color: #86868b; font-weight: 400;">
+                                Daily Portfolio Report
+                            </p>
+                        </td>
+                    </tr>
 
-        <div class="section">
-            <h2 class="section-title">Diff to Buy Price</h2>
-            <div class="section-content">
-                {diff_html}
-            </div>
-        </div>
+                    <!-- Divider -->
+                    <tr>
+                        <td style="padding: 0 0 40px 0;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="border-bottom: 1px solid #d2d2d7;"></td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-        <div class="footer">
-            Stocker Tracker Report
-        </div>
-    </div>
+                    <!-- Daily Price Change Section -->
+                    <tr>
+                        <td style="padding: 0 0 40px 0;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0071e3; border-radius: 8px; margin-bottom: 24px;">
+                                <tr>
+                                    <td style="padding: 16px 20px;">
+                                        <h2 style="margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 24px; font-weight: 600; color: #ffffff;">
+                                            Daily Price Change
+                                        </h2>
+                                        <p style="margin: 4px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 15px; color: rgba(255,255,255,0.8);">
+                                            Stocks with significant movements
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            {daily_change_cards}
+                        </td>
+                    </tr>
+
+                    <!-- Divider -->
+                    <tr>
+                        <td style="padding: 0 0 40px 0;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="border-bottom: 1px solid #d2d2d7;"></td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Diff to Buy Price Section -->
+                    <tr>
+                        <td style="padding: 0 0 48px 0;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0071e3; border-radius: 8px; margin-bottom: 24px;">
+                                <tr>
+                                    <td style="padding: 16px 20px;">
+                                        <h2 style="margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 24px; font-weight: 600; color: #ffffff;">
+                                            Diff to Buy Price
+                                        </h2>
+                                        <p style="margin: 4px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 15px; color: rgba(255,255,255,0.8);">
+                                            Distance from target buy prices
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            {diff_cards}
+                        </td>
+                    </tr>
+
+                    <!-- Divider -->
+                    <tr>
+                        <td style="padding: 0 0 40px 0;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="border-bottom: 1px solid #d2d2d7;"></td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer Section -->
+                    <tr>
+                        <td align="center" style="padding: 0;">
+                            <p style="margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; color: #1d1d1f;">
+                                Stock Tracker Report
+                            </p>
+                            <p style="margin: 8px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px; color: #86868b;">
+                                Generated on {current_date}
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
-</html>
-"""
+</html>'''
 
 @app.post("/api/send-test-email")
 async def send_test_email():

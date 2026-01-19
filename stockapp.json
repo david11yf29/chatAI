@@ -6,13 +6,13 @@
   "search": "yahoo finance",
   "stocks": [
     {
-      "symbol": "QQQ",
-      "name": "Invesco QQQ Trust",
-      "price": 621.26,
-      "changePercent": -0.08,
+      "symbol": "MU",
+      "name": "Micron Technology, Inc.",
+      "price": 362.75,
+      "changePercent": 7.76,
       "date": "2026-01-16",
       "buyPrice": 33.0,
-      "diff": 94.69
+      "diff": -90.9
     },
     {
       "symbol": "AAOI",
@@ -21,7 +21,7 @@
       "changePercent": 0.11,
       "date": "2026-01-16",
       "buyPrice": 35.0,
-      "diff": 5.51
+      "diff": -5.51
     },
     {
       "symbol": "PLTR",
@@ -30,7 +30,7 @@
       "changePercent": -3.45,
       "date": "2026-01-16",
       "buyPrice": 70.0,
-      "diff": 59.05
+      "diff": -59.05
     }
   ]
 }
