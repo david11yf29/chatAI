@@ -40,14 +40,20 @@ h1 {
     background-color: #28a745;
     color: #fff;
     border: none;
-    padding: 4px 10px;
+    padding: 8px 16px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
+    min-width: 80px;
 }
 
 #add-btn:hover {
     background-color: #218838;
+}
+
+#add-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
 }
 
 #update-btn {
@@ -58,6 +64,7 @@ h1 {
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.9rem;
+    min-width: 80px;
 }
 
 #update-btn:hover {
@@ -176,8 +183,8 @@ th:last-child {
 
 /* Remove button styles */
 .remove-col {
-    width: 40px;
-    padding: 12px 8px;
+    width: auto;
+    padding: 12px 20px;
 }
 
 .remove-cell {
