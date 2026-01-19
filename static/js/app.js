@@ -104,7 +104,15 @@ function renderStocks(stocks) {
     document.querySelectorAll('.remove-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const symbol = e.target.dataset.symbol;
-            removeStock(symbol);
+            const index = parseInt(e.target.closest('tr').querySelector('.symbol-input').dataset.index);
+
+            // If symbol is empty (unsaved new row), just remove from local array
+            if (!symbol || symbol.trim() === '') {
+                currentStocks.splice(index, 1);
+                renderStocks(currentStocks);
+            } else {
+                removeStock(symbol);
+            }
         });
     });
 }
