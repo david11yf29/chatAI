@@ -11,7 +11,8 @@
         "symbol": "PLTR",
         "name": "Palantir Technologies Inc.",
         "price": 170.96,
-        "changePercent": -3.45
+        "changePercent": -3.45,
+        "news": ""
       }
     ],
     "diffToBuyPrice": [
