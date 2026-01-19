@@ -1,5 +1,16 @@
 # Stock Tracker Button Workflows
 
+> **📌 CANONICAL REFERENCE**
+> This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
+>
+> - **Last Updated:** 2026-01-20
+> - **Maintainer:** Update this file whenever button logic changes in the code
+> - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
+>
+> If the code and this document conflict, update this document to reflect the actual implementation.
+
+---
+
 This document describes the detailed workflow for each of the four main buttons in the Stock Tracker application.
 
 ---
