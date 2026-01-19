@@ -8,28 +8,35 @@
   "content": {
     "dailyPriceChange": [
       {
+        "symbol": "MU",
+        "name": "Micron Technology, Inc.",
+        "price": 362.75,
+        "changePercent": 7.76,
+        "news": "- Why Micron Stock Is Surging Today\n- Micron breaks ground on massive chipmaking plant that could transform Central NY\n- Why Micron Stock Skyrocketed 239.1% Last Year and Has Kept Rallying in 2026"
+      },
+      {
         "symbol": "PLTR",
         "name": "Palantir Technologies Inc.",
         "price": 170.96,
         "changePercent": -3.45,
-        "news": "- Palantir stock dips after report suggests federal AI spending growth may slow in 2025\n- Palantir slides as analysts flag valuation concerns despite government deal momentum\n- Palantir shares fall after profit-taking and mixed reactions to expanding AI platform contracts"
+        "news": "- Why Palantir Fell Hard To Start 2026\n- Palantir Technologies Inc. (PLTR) Falls More Steeply Than Broader Market: What Investors Need to Know\n- Palantir Technologies (NASDAQ:PLTR) Trading Down 3.5% - Here's What Happened"
       }
     ],
     "diffToBuyPrice": [
       {
-        "symbol": "QQQ",
-        "price": 621.26,
-        "diff": 94.69
+        "symbol": "MU",
+        "price": 362.75,
+        "diff": -90.9
       },
       {
         "symbol": "AAOI",
         "price": 37.04,
-        "diff": 5.51
+        "diff": -5.51
       },
       {
         "symbol": "PLTR",
         "price": 170.96,
-        "diff": 59.05
+        "diff": -59.05
       }
     ]
   }
