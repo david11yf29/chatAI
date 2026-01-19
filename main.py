@@ -328,8 +328,29 @@ async def update_stocks(request: StocksUpdateRequest):
     return {"message": "Stocks updated successfully", "stocks": updated_stocks}
 
 def generate_stock_email_html():
-    """Generate HTML email content with stock portfolio sections."""
-    return """
+    """Generate HTML email content with stock portfolio sections from email.json."""
+    # Load email content from email.json
+    with open("email.json", "r") as f:
+        email_config = json.load(f)
+
+    content = email_config.get("content", {})
+    daily_price_change = content.get("dailyPriceChange", [])
+    diff_to_buy_price = content.get("diffToBuyPrice", [])
+
+    # Generate content sections (empty for now, rules not yet implemented)
+    daily_change_html = ""
+    if daily_price_change:
+        daily_change_html = "<br>".join(str(item) for item in daily_price_change)
+    else:
+        daily_change_html = "<!-- Content will be added here -->"
+
+    diff_html = ""
+    if diff_to_buy_price:
+        diff_html = "<br>".join(str(item) for item in diff_to_buy_price)
+    else:
+        diff_html = "<!-- Content will be added here -->"
+
+    return f"""
 <!DOCTYPE html>
 <html>
 <head>
@@ -337,56 +358,56 @@ def generate_stock_email_html():
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stocker Tracker Report</title>
     <style>
-        body {
+        body {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             background-color: #f5f5f5;
             margin: 0;
             padding: 20px;
-        }
-        .container {
+        }}
+        .container {{
             max-width: 600px;
             margin: 0 auto;
             background-color: #ffffff;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             overflow: hidden;
-        }
-        .header {
+        }}
+        .header {{
             background-color: #1a73e8;
             color: white;
             padding: 20px;
             text-align: center;
-        }
-        .header h1 {
+        }}
+        .header h1 {{
             margin: 0;
             font-size: 24px;
-        }
-        .section {
+        }}
+        .section {{
             padding: 20px;
             border-bottom: 1px solid #e0e0e0;
-        }
-        .section:last-child {
+        }}
+        .section:last-child {{
             border-bottom: none;
-        }
-        .section-title {
+        }}
+        .section-title {{
             font-size: 18px;
             font-weight: 600;
             color: #333;
             margin: 0 0 15px 0;
             padding-bottom: 10px;
             border-bottom: 2px solid #1a73e8;
-        }
-        .section-content {
+        }}
+        .section-content {{
             color: #666;
             font-size: 14px;
-        }
-        .footer {
+        }}
+        .footer {{
             background-color: #f9f9f9;
             padding: 15px;
             text-align: center;
             font-size: 12px;
             color: #999;
-        }
+        }}
     </style>
 </head>
 <body>
@@ -398,14 +419,14 @@ def generate_stock_email_html():
         <div class="section">
             <h2 class="section-title">Daily Price Change</h2>
             <div class="section-content">
-                <!-- Content will be added here -->
+                {daily_change_html}
             </div>
         </div>
 
         <div class="section">
             <h2 class="section-title">Diff to Buy Price</h2>
             <div class="section-content">
-                <!-- Content will be added here -->
+                {diff_html}
             </div>
         </div>
 
@@ -419,14 +440,17 @@ def generate_stock_email_html():
 
 @app.post("/api/send-test-email")
 async def send_test_email():
-    """Send a test email to all addresses in the _emailList field of stockapp.json using Resend."""
-    # Load email list from stockapp.json
-    with open("stockapp.json", "r") as f:
-        data = json.load(f)
-    email_list = data.get("_emailList", [])
+    """Send a test email using configuration from email.json via Resend."""
+    # Load email configuration from email.json
+    with open("email.json", "r") as f:
+        email_config = json.load(f)
 
-    if not email_list:
-        return {"status": "error", "message": "No email addresses found in _emailList"}
+    email_from = email_config.get("from", "onboarding@resend.dev")
+    email_to = email_config.get("to", [])
+    email_subject = email_config.get("subject", "Stocker Tracker Report")
+
+    if not email_to:
+        return {"status": "error", "message": "No email addresses found in email.json"}
 
     resend_api_key = os.getenv("RESEND_API_KEY")
     if not resend_api_key:
@@ -444,15 +468,15 @@ async def send_test_email():
                 "Content-Type": "application/json"
             },
             json={
-                "from": "onboarding@resend.dev",
-                "to": email_list,
-                "subject": "Stocker Tracker Report",
+                "from": email_from,
+                "to": email_to,
+                "subject": email_subject,
                 "html": email_html
             }
         )
 
     if response.status_code == 200:
-        return {"status": "sent", "recipients": email_list, "response": response.json()}
+        return {"status": "sent", "recipients": email_to, "response": response.json()}
     else:
         return {"status": "error", "code": response.status_code, "message": response.text}
 

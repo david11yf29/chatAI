@@ -1,7 +1,4 @@
 {
-  "_emailList": [
-    "david11yf29@gmail.com"
-  ],
   "_metadata": {
     "description": "Stock portfolio tracking data",
     "sourceOfTruth": "This file is the single source of truth for all stock data. All changes must be persisted here before being returned to the frontend."
@@ -9,13 +6,13 @@
   "search": "yahoo finance",
   "stocks": [
     {
-      "symbol": "SNDK",
-      "name": "Sandisk Corporation",
-      "price": 413.62,
-      "changePercent": 1.07,
+      "symbol": "QQQ",
+      "name": "Invesco QQQ Trust",
+      "price": 621.26,
+      "changePercent": -0.08,
       "date": "2026-01-16",
       "buyPrice": 33.0,
-      "diff": 92.02
+      "diff": 94.69
     },
     {
       "symbol": "AAOI",
