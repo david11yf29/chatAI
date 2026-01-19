@@ -1,0 +1,9 @@
+{
+  "from": "onboarding@resend.dev",
+  "to": ["david11yf29@gmail.com"],
+  "subject": "Stocker Tracker Report",
+  "content": {
+    "dailyPriceChange": [],
+    "diffToBuyPrice": []
+  }
+}
