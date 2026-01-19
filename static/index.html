@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock Tracker</title>
-    <link rel="stylesheet" href="/static/css/styles.css?v=9">
+    <link rel="stylesheet" href="/static/css/styles.css?v=10">
 </head>
 <body>
     <div class="container">
@@ -12,7 +12,7 @@
         <table id="stock-table">
             <thead>
                 <tr>
-                    <th class="remove-col"></th>
+                    <th class="remove-col"><button id="add-btn">Add</button></th>
                     <th>Symbol</th>
                     <th>Price</th>
                     <th>Change</th>
@@ -24,7 +24,6 @@
             </tbody>
         </table>
         <div class="actions">
-            <button id="add-btn">Add</button>
             <button id="update-btn">Update</button>
         </div>
     </div>
