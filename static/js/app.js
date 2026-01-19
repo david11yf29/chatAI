@@ -34,6 +34,27 @@ async function removeStock(symbol) {
     }
 }
 
+function addStock() {
+    const newStock = {
+        symbol: "",
+        name: "New Stock",
+        price: 0,
+        changePercent: 0,
+        date: "",
+        buyPrice: 0,
+        diff: 0
+    };
+    currentStocks.push(newStock);
+    renderStocks(currentStocks);
+
+    // Focus the new symbol input for immediate editing
+    const symbolInputs = document.querySelectorAll('.symbol-input');
+    const lastInput = symbolInputs[symbolInputs.length - 1];
+    if (lastInput) {
+        lastInput.focus();
+    }
+}
+
 function renderStocks(stocks) {
     const tbody = document.getElementById('stock-body');
     tbody.innerHTML = '';
@@ -131,5 +152,6 @@ async function saveStocks() {
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchStocks();
+    document.getElementById('add-btn').addEventListener('click', addStock);
     document.getElementById('update-btn').addEventListener('click', saveStocks);
 });
