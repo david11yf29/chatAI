@@ -394,17 +394,42 @@ async def delete_stock(symbol: str):
 def get_stock_news(symbol: str, name: str, change_percent: float) -> str:
     """Fetch relevant news summary for a stock using AI chat API with web search."""
     direction = "increased" if change_percent > 0 else "decreased"
-    prompt = f"""Search the web for recent news about {symbol} ({name}) that could explain why the stock {direction} by {abs(change_percent):.2f}%.
 
-IMPORTANT: After finding news articles, you MUST use the read_page tool to read the full content of 1 article. Then provide a summary (2-3 sentences) explaining the key points.
+    # Load preferred news sources from email.json
+    try:
+        with open("email.json", "r") as f:
+            email_config = json.load(f)
+        news_sources = email_config.get("newsSearch", [])
+    except Exception as e:
+        logger.warning(f"[get_stock_news] Could not load newsSearch from email.json: {e}")
+        news_sources = []
 
-Proceed automatically without asking for permission. Return ONLY the summary, no thinking or planning text."""
+    # Build the prompt with preferred sources
+    sources_instruction = ""
+    if news_sources:
+        sources_list = ", ".join(news_sources)
+        sources_instruction = f"""
+PREFERRED SOURCES: Search these sites first: {sources_list}
+Example search: "{symbol} stock news" or "site:investors.com {symbol}"
+"""
+
+    prompt = f"""Find news explaining why {symbol} ({name}) stock {direction} by {abs(change_percent):.2f}%.
+{sources_instruction}
+WORKFLOW (follow exactly):
+1. Call web_search ONCE to find relevant articles
+2. From the search results, pick ONE article URL that relates to the stock price movement
+3. Call read_page with that URL to read the article content
+4. Return a 2-3 sentence summary of the key news points
+
+CRITICAL: After web_search, IMMEDIATELY call read_page on a relevant article URL. Do NOT search again. Just pick one article and read it.
+
+Return ONLY the final summary. No planning text, no "I will", no "Let me" - just the news summary."""
 
     messages = [{"role": "user", "content": prompt}]
     max_turns = 4
     final_response = ""
 
-    logger.info(f"[get_stock_news] Starting news fetch for {symbol}")
+    logger.info(f"[get_stock_news] Starting news fetch for {symbol} with preferred sources: {news_sources}")
 
     try:
         for turn in range(max_turns):
@@ -492,7 +517,7 @@ Proceed automatically without asking for permission. Return ONLY the summary, no
             # Force a final response by calling without tools
             messages.append({
                 "role": "user",
-                "content": "Based on the article you read above, provide 1 news summary (2-3 sentences) explaining the key points. Return ONLY the summary, no thinking or planning text."
+                "content": f"Based on the information gathered above, provide a 2-3 sentence summary explaining why {symbol} stock {direction} by {abs(change_percent):.2f}%. Return ONLY the summary - no intro phrases like 'Here is' or 'Based on', just the factual news summary."
             })
             try:
                 final_call = client.chat.completions.create(
