@@ -13,6 +13,22 @@
         "changePercent": -3.45
       }
     ],
-    "diffToBuyPrice": []
+    "diffToBuyPrice": [
+      {
+        "symbol": "QQQ",
+        "price": 621.26,
+        "diff": 94.69
+      },
+      {
+        "symbol": "AAOI",
+        "price": 37.04,
+        "diff": 5.51
+      },
+      {
+        "symbol": "PLTR",
+        "price": 170.96,
+        "diff": 59.05
+      }
+    ]
   }
 }
