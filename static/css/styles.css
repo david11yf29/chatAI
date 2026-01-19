@@ -38,11 +38,10 @@ h1 {
     background-color: #28a745;
     color: #fff;
     border: none;
-    padding: 8px 16px;
+    padding: 4px 10px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.9rem;
-    margin-right: 8px;
+    font-size: 0.8rem;
 }
 
 #add-btn:hover {
