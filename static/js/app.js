@@ -18,6 +18,22 @@ async function fetchStocks() {
     }
 }
 
+async function removeStock(symbol) {
+    console.log('Removing stock:', symbol);
+    try {
+        const response = await fetch(`/api/stocks/${encodeURIComponent(symbol)}`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        console.log('Remove response:', data);
+        if (data.success) {
+            await fetchStocks();
+        }
+    } catch (error) {
+        console.error('Error removing stock:', error);
+    }
+}
+
 function renderStocks(stocks) {
     const tbody = document.getElementById('stock-body');
     tbody.innerHTML = '';
@@ -35,6 +51,7 @@ function renderStocks(stocks) {
         }
 
         row.innerHTML = `
+            <td class="remove-cell"><button class="remove-btn" data-symbol="${stock.symbol}">Remove</button></td>
             <td><input type="text" class="editable-input symbol-input" data-index="${index}" value="${stock.symbol}"></td>
             <td>$${stock.price.toFixed(2)}</td>
             <td class="${changeClass}">${changeDisplay}</td>
@@ -59,6 +76,14 @@ function renderStocks(stocks) {
         input.addEventListener('input', (e) => {
             const index = parseInt(e.target.dataset.index);
             currentStocks[index].buyPrice = parseFloat(e.target.value) || 0;
+        });
+    });
+
+    // Remove button click handler
+    document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const symbol = e.target.dataset.symbol;
+            removeStock(symbol);
         });
     });
 }

@@ -327,6 +327,28 @@ async def update_stocks(request: StocksUpdateRequest):
 
     return {"message": "Stocks updated successfully", "stocks": updated_stocks}
 
+@app.delete("/api/stocks/{symbol}")
+async def delete_stock(symbol: str):
+    """Remove a stock from the portfolio by symbol."""
+    symbol = symbol.upper().strip()
+
+    # Read existing data
+    with open("stockapp.json", "r") as f:
+        data = json.load(f)
+
+    # Filter out the stock with matching symbol
+    original_count = len(data["stocks"])
+    data["stocks"] = [s for s in data["stocks"] if s["symbol"].upper() != symbol]
+
+    if len(data["stocks"]) == original_count:
+        return {"message": f"Stock {symbol} not found", "success": False}
+
+    # Save updated data back to stockapp.json
+    with open("stockapp.json", "w") as f:
+        json.dump(data, f, indent=2)
+
+    return {"message": f"Stock {symbol} removed successfully", "success": True}
+
 def generate_stock_email_html():
     """Generate HTML email content with stock portfolio sections from email.json."""
     # Load email content from email.json

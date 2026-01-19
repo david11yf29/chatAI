@@ -119,3 +119,34 @@ th:last-child {
     color: #dc3545;
     font-weight: 500;
 }
+
+/* Remove button styles */
+.remove-col {
+    width: 40px;
+    padding: 12px 8px;
+}
+
+.remove-cell {
+    width: 40px;
+    padding: 12px 8px;
+}
+
+.remove-btn {
+    background-color: #dc3545;
+    color: #fff;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+tr:hover .remove-btn {
+    opacity: 1;
+}
+
+.remove-btn:hover {
+    background-color: #c82333;
+}
