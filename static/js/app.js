@@ -192,9 +192,44 @@ async function updateEmail() {
     }
 }
 
+async function sendEmail() {
+    const sendEmailBtn = document.getElementById('send-email-btn');
+    sendEmailBtn.disabled = true;
+    sendEmailBtn.textContent = 'Sending...';
+
+    console.log('Sending test email...');
+
+    try {
+        const response = await fetch('/api/send-test-email', {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Email sent successfully:', data);
+
+            sendEmailBtn.textContent = 'Sent!';
+            setTimeout(() => {
+                sendEmailBtn.textContent = 'Send Email';
+                sendEmailBtn.disabled = false;
+            }, 1500);
+        } else {
+            throw new Error('Failed to send email');
+        }
+    } catch (error) {
+        console.error('Error sending email:', error);
+        sendEmailBtn.textContent = 'Error!';
+        setTimeout(() => {
+            sendEmailBtn.textContent = 'Send Email';
+            sendEmailBtn.disabled = false;
+        }, 1500);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     fetchStocks();
     document.getElementById('add-btn').addEventListener('click', addStock);
     document.getElementById('update-btn').addEventListener('click', saveStocks);
     document.getElementById('update-email-btn').addEventListener('click', updateEmail);
+    document.getElementById('send-email-btn').addEventListener('click', sendEmail);
 });

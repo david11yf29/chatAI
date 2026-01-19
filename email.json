@@ -1,5 +1,9 @@
 {
   "from": "onboarding@resend.dev",
+  "newsSearch": [
+    "https://www.investors.com/",
+    "https://seekingalpha.com/"
+  ],
   "time": "2026-01-19T08:00:00+08:00",
   "to": [
     "david11yf29@gmail.com"
@@ -12,14 +16,14 @@
         "name": "Micron Technology, Inc.",
         "price": 362.75,
         "changePercent": 7.76,
-        "news": "- Why Micron Stock Is Surging Today\n- Micron breaks ground on massive chipmaking plant that could transform Central NY\n- Why Micron Stock Skyrocketed 239.1% Last Year and Has Kept Rallying in 2026"
+        "news": "Micron\u2019s rally is being driven by booming demand and pricing for AI memory\u2014especially high\u2011bandwidth memory (HBM) used in Nvidia and AMD accelerators\u2014which has fueled sharp sales and earnings growth. The company says its AI memory supply is sold out through 2026 and it can meet only about 60% of near\u2011term demand, prompting capacity expansions via new plants and acquisitions. Recent results included fiscal 2025 revenue of $37.4 billion and adjusted EPS of $8.29, with Q1 revenue up 56.6% year over year to $13.6 billion and EPS of $4.78."
       },
       {
         "symbol": "PLTR",
         "name": "Palantir Technologies Inc.",
         "price": 170.96,
         "changePercent": -3.45,
-        "news": "- Why Palantir Fell Hard To Start 2026\n- Palantir Technologies Inc. (PLTR) Falls More Steeply Than Broader Market: What Investors Need to Know\n- Palantir Technologies (NASDAQ:PLTR) Trading Down 3.5% - Here's What Happened"
+        "news": "Palantir\u2019s 3.45% drop appears tied to renewed valuation concerns and a broader rotation out of software/AI stocks; the company\u2019s shares are down about 17% from their recent high despite a massive multi-year run. Wall Street is split\u2014bulls cite strong AI-platform execution and results, while bears warn the premium valuation is hard to justify\u2014adding pressure to the stock."
       }
     ],
     "diffToBuyPrice": [
