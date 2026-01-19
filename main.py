@@ -146,6 +146,47 @@ def read_page(url: str) -> dict:
         logger.error(f"Error reading page {url}: {e}")
         return {"error": str(e), "url": url}
 
+
+def summarize_page_content(url: str, text: str, symbol: str, name: str) -> str:
+    """
+    Summarize the page content using LLM to extract key news information.
+
+    Args:
+        url: The source URL
+        text: The raw text content from the page
+        symbol: Stock symbol for context
+        name: Stock name for context
+
+    Returns:
+        str: Summarized content focusing on news relevant to the stock
+    """
+    try:
+        summary_prompt = f"""Summarize the following article content in 2-3 concise sentences, focusing on information relevant to {symbol} ({name}) stock. Extract the key news points that could explain stock price movement.
+
+Article from: {url}
+
+Content:
+{text[:5000]}
+
+Provide only the summary, no additional commentary."""
+
+        logger.info(f"[summarize_page_content] Summarizing content for {symbol} from {url}")
+
+        summary_response = client.chat.completions.create(
+            model="gpt-5",
+            messages=[{"role": "user", "content": summary_prompt}]
+        )
+
+        summary = summary_response.choices[0].message.content or ""
+        logger.info(f"[summarize_page_content] Summary generated for {symbol}: {summary[:200]}")
+
+        return summary
+
+    except Exception as e:
+        logger.error(f"[summarize_page_content] Error summarizing content for {symbol}: {e}")
+        # Return truncated original text as fallback
+        return text[:1000] + "..." if len(text) > 1000 else text
+
 # Tool schema for the LLM
 TOOLS = [
     {
@@ -351,12 +392,16 @@ async def delete_stock(symbol: str):
 
 
 def get_stock_news(symbol: str, name: str, change_percent: float) -> str:
-    """Fetch relevant news headlines for a stock using AI chat API with web search."""
+    """Fetch relevant news summary for a stock using AI chat API with web search."""
     direction = "increased" if change_percent > 0 else "decreased"
-    prompt = f"Search the web and find 3 recent news headlines about {symbol} ({name}) that could potentially explain why the stock {direction} by {abs(change_percent):.2f}%. Proceed automatically without asking for permission. Return only the headlines as a brief bulleted list."
+    prompt = f"""Search the web for recent news about {symbol} ({name}) that could explain why the stock {direction} by {abs(change_percent):.2f}%.
+
+IMPORTANT: After finding news articles, you MUST use the read_page tool to read the full content of 1 article. Then provide a summary (2-3 sentences) explaining the key points.
+
+Proceed automatically without asking for permission. Return ONLY the summary, no thinking or planning text."""
 
     messages = [{"role": "user", "content": prompt}]
-    max_turns = 5
+    max_turns = 4
     final_response = ""
 
     logger.info(f"[get_stock_news] Starting news fetch for {symbol}")
@@ -408,7 +453,17 @@ def get_stock_news(symbol: str, name: str, change_percent: float) -> str:
                         if function_name == "web_search":
                             result = web_search(function_args.get("query", ""))
                         elif function_name == "read_page":
-                            result = read_page(function_args.get("url", ""))
+                            url = function_args.get("url", "")
+                            result = read_page(url)
+                            # If read_page succeeded with content, summarize it
+                            if "text" in result and result["text"] and "error" not in result:
+                                logger.info(f"[get_stock_news] Summarizing page content for {symbol} from {url}")
+                                summary = summarize_page_content(url, result["text"], symbol, name)
+                                result = {
+                                    "url": url,
+                                    "summary": summary,
+                                    "original_length": result.get("length", 0)
+                                }
                         else:
                             result = {"error": f"Unknown function: {function_name}"}
                     except Exception as tool_error:
@@ -437,7 +492,7 @@ def get_stock_news(symbol: str, name: str, change_percent: float) -> str:
             # Force a final response by calling without tools
             messages.append({
                 "role": "user",
-                "content": "Based on the search results above, provide exactly 3 news headlines as a brief bulleted list. Do not search again, just summarize what you found."
+                "content": "Based on the article you read above, provide 1 news summary (2-3 sentences) explaining the key points. Return ONLY the summary, no thinking or planning text."
             })
             try:
                 final_call = client.chat.completions.create(
@@ -452,6 +507,27 @@ def get_stock_news(symbol: str, name: str, change_percent: float) -> str:
     except Exception as e:
         logger.error(f"[get_stock_news] Exception for {symbol}: {e}", exc_info=True)
         final_response = ""
+
+    # Clean up thinking/planning text from the response
+    if final_response:
+        lines = final_response.split('\n')
+        cleaned_lines = []
+        for line in lines:
+            line_lower = line.lower().strip()
+            # Skip empty lines and lines that look like thinking/planning text
+            if not line.strip():
+                continue
+            if any(phrase in line_lower for phrase in [
+                'i will', 'i\'ll', 'let me', 'proceeding', 'reading article',
+                'opening article', 'now reading', 'searching for', 'looking for',
+                'reading the', 'opening the', 'attempting to', 'trying',
+                'will return', 'continuing', 'finalizing', 'returning only',
+                'now attempting', 'searching again'
+            ]):
+                continue
+            cleaned_lines.append(line)
+        final_response = '\n'.join(cleaned_lines).strip()
+        logger.info(f"[get_stock_news] Cleaned response for {symbol}: {final_response[:200] if final_response else 'EMPTY'}")
 
     return final_response
 
