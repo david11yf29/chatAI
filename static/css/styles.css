@@ -31,7 +31,9 @@ h1 {
     padding: 12px 20px;
     background-color: #f9f9f9;
     border-top: 1px solid #eee;
-    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 #add-btn {
@@ -63,6 +65,25 @@ h1 {
 }
 
 #update-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+#update-email-btn {
+    background-color: #17a2b8;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+#update-email-btn:hover {
+    background-color: #138496;
+}
+
+#update-email-btn:disabled {
     background-color: #ccc;
     cursor: not-allowed;
 }

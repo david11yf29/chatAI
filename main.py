@@ -349,6 +349,160 @@ async def delete_stock(symbol: str):
 
     return {"message": f"Stock {symbol} removed successfully", "success": True}
 
+
+def get_stock_news(symbol: str, name: str, change_percent: float) -> str:
+    """Fetch relevant news headlines for a stock using AI chat API with web search."""
+    direction = "increased" if change_percent > 0 else "decreased"
+    prompt = f"Search the web and find 3 recent news headlines about {symbol} ({name}) that could potentially explain why the stock {direction} by {abs(change_percent):.2f}%. Proceed automatically without asking for permission. Return only the headlines as a brief bulleted list."
+
+    messages = [{"role": "user", "content": prompt}]
+    max_turns = 5
+    final_response = ""
+
+    logger.info(f"[get_stock_news] Starting news fetch for {symbol}")
+
+    try:
+        for turn in range(max_turns):
+            logger.info(f"[get_stock_news] Turn {turn + 1}/{max_turns} for {symbol}")
+
+            response = client.chat.completions.create(
+                model="gpt-5",
+                messages=messages,
+                tools=TOOLS
+            )
+
+            message = response.choices[0].message
+            response_content = message.content if message.content else ""
+            tool_calls = message.tool_calls if hasattr(message, 'tool_calls') and message.tool_calls else None
+
+            logger.info(f"[get_stock_news] Response content length: {len(response_content)}, has tool_calls: {bool(tool_calls)}")
+
+            if tool_calls:
+                logger.info(f"[get_stock_news] Tool calls: {[tc.function.name for tc in tool_calls]}")
+
+                # Add assistant's message with tool calls
+                messages.append({
+                    "role": "assistant",
+                    "content": response_content,
+                    "tool_calls": [
+                        {
+                            "id": tc.id,
+                            "type": tc.type,
+                            "function": {
+                                "name": tc.function.name,
+                                "arguments": tc.function.arguments
+                            }
+                        }
+                        for tc in tool_calls
+                    ]
+                })
+
+                # Execute each tool call
+                for tool_call in tool_calls:
+                    function_name = tool_call.function.name
+                    function_args = json.loads(tool_call.function.arguments)
+
+                    logger.info(f"[get_stock_news] Executing {function_name} with args: {function_args}")
+
+                    try:
+                        if function_name == "web_search":
+                            result = web_search(function_args.get("query", ""))
+                        elif function_name == "read_page":
+                            result = read_page(function_args.get("url", ""))
+                        else:
+                            result = {"error": f"Unknown function: {function_name}"}
+                    except Exception as tool_error:
+                        logger.error(f"[get_stock_news] Tool execution error for {symbol}: {tool_error}")
+                        result = {"error": str(tool_error)}
+
+                    logger.info(f"[get_stock_news] Tool result preview: {str(result)[:200]}")
+
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": function_name,
+                        "content": json.dumps(result)
+                    })
+
+                # Continue to next turn to get AI response with tool results
+                continue
+            else:
+                # No tool calls - this is the final response
+                final_response = response_content
+                logger.info(f"[get_stock_news] Final response for {symbol}: {final_response[:200] if final_response else 'EMPTY'}")
+                break
+
+        if not final_response:
+            logger.warning(f"[get_stock_news] No final response for {symbol} after {max_turns} turns, forcing final call")
+            # Force a final response by calling without tools
+            messages.append({
+                "role": "user",
+                "content": "Based on the search results above, provide exactly 3 news headlines as a brief bulleted list. Do not search again, just summarize what you found."
+            })
+            try:
+                final_call = client.chat.completions.create(
+                    model="gpt-5",
+                    messages=messages
+                )
+                final_response = final_call.choices[0].message.content or ""
+                logger.info(f"[get_stock_news] Forced final response for {symbol}: {final_response[:200] if final_response else 'EMPTY'}")
+            except Exception as final_error:
+                logger.error(f"[get_stock_news] Error in forced final call for {symbol}: {final_error}")
+
+    except Exception as e:
+        logger.error(f"[get_stock_news] Exception for {symbol}: {e}", exc_info=True)
+        final_response = ""
+
+    return final_response
+
+
+@app.post("/api/update-email")
+async def update_email():
+    """Update email.json with dailyPriceChange and diffToBuyPrice from stockapp.json."""
+    # Read stockapp.json
+    with open("stockapp.json", "r") as f:
+        stock_data = json.load(f)
+
+    # Filter stocks where |changePercent| > 3 for dailyPriceChange
+    filtered = []
+    for s in stock_data["stocks"]:
+        if abs(s.get("changePercent", 0) or 0) > 3:
+            logger.info(f"Fetching news for {s['symbol']}...")
+            news = get_stock_news(s["symbol"], s["name"], s["changePercent"])
+            filtered.append({
+                "symbol": s["symbol"],
+                "name": s["name"],
+                "price": s["price"],
+                "changePercent": s["changePercent"],
+                "news": news
+            })
+
+    # Get all stocks for diffToBuyPrice (symbol, price, diff)
+    diff_to_buy = [
+        {
+            "symbol": s["symbol"],
+            "price": s["price"],
+            "diff": s.get("diff", 0)
+        }
+        for s in stock_data["stocks"]
+    ]
+
+    # Read email.json, update both arrays, write back
+    with open("email.json", "r") as f:
+        email_data = json.load(f)
+
+    email_data["content"]["dailyPriceChange"] = filtered
+    email_data["content"]["diffToBuyPrice"] = diff_to_buy
+
+    with open("email.json", "w") as f:
+        json.dump(email_data, f, indent=2)
+
+    return {
+        "success": True,
+        "dailyPriceChangeCount": len(filtered),
+        "diffToBuyPriceCount": len(diff_to_buy)
+    }
+
 def generate_stock_email_html():
     """Generate HTML email content with stock portfolio sections from email.json."""
     # Load email content from email.json
