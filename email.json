@@ -1,9 +1,18 @@
 {
   "from": "onboarding@resend.dev",
-  "to": ["david11yf29@gmail.com"],
+  "to": [
+    "david11yf29@gmail.com"
+  ],
   "subject": "Stocker Tracker Report",
   "content": {
-    "dailyPriceChange": [],
+    "dailyPriceChange": [
+      {
+        "symbol": "PLTR",
+        "name": "Palantir Technologies Inc.",
+        "price": 170.96,
+        "changePercent": -3.45
+      }
+    ],
     "diffToBuyPrice": []
   }
 }
