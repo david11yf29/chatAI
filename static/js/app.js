@@ -158,8 +158,43 @@ async function saveStocks() {
     }
 }
 
+async function updateEmail() {
+    const updateEmailBtn = document.getElementById('update-email-btn');
+    updateEmailBtn.disabled = true;
+    updateEmailBtn.textContent = 'Updating...';
+
+    console.log('Updating email alerts...');
+
+    try {
+        const response = await fetch('/api/update-email', {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Email updated successfully:', data);
+
+            updateEmailBtn.textContent = 'Updated!';
+            setTimeout(() => {
+                updateEmailBtn.textContent = 'Update Email';
+                updateEmailBtn.disabled = false;
+            }, 1500);
+        } else {
+            throw new Error('Failed to update email');
+        }
+    } catch (error) {
+        console.error('Error updating email:', error);
+        updateEmailBtn.textContent = 'Error!';
+        setTimeout(() => {
+            updateEmailBtn.textContent = 'Update Email';
+            updateEmailBtn.disabled = false;
+        }, 1500);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     fetchStocks();
     document.getElementById('add-btn').addEventListener('click', addStock);
     document.getElementById('update-btn').addEventListener('click', saveStocks);
+    document.getElementById('update-email-btn').addEventListener('click', updateEmail);
 });
