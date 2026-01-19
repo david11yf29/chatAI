@@ -34,6 +34,21 @@ h1 {
     text-align: left;
 }
 
+#add-btn {
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-right: 8px;
+}
+
+#add-btn:hover {
+    background-color: #218838;
+}
+
 #update-btn {
     background-color: #007bff;
     color: #fff;
