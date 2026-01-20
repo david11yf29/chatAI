@@ -253,6 +253,7 @@ This document describes the detailed workflow for each of the four main buttons 
              - Headers: Authorization with `SUPER_MIND_API_KEY`
              - Payload: `{"keywords": [query], "max_results": 3}`
              - Returns: Search results with article URLs
+             - **Date Filtering:** LLM should filter out news articles that were created/published/updated before the `date` field in `email.json`, since news explaining stock price movements should be published after the market closes on that day
 
          iii. **Execute `read_page` Tool (if AI requests)**
               - Fetches full article content via HTTP GET
