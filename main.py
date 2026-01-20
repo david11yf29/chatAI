@@ -9,7 +9,8 @@ import os
 import logging
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 import json
 import sys
 import httpx
@@ -305,6 +306,29 @@ async def get_stock_info(symbol: str):
         logger.error(f"Error fetching stock info for {symbol}: {e}")
         return {"symbol": symbol, "name": symbol, "error": str(e)}
 
+
+def format_market_close_time(trading_date) -> str:
+    """Convert trading date to market close time in Eastern Time.
+
+    US stock market closes at 4:00 PM Eastern Time.
+
+    Args:
+        trading_date: The trading date from yfinance (pandas Timestamp or datetime)
+
+    Returns:
+        ISO 8601 formatted string like "2026-01-16T16:00:00-05:00"
+    """
+    # Get the trading date as a date object
+    trade_date = trading_date.date() if hasattr(trading_date, 'date') else trading_date
+
+    # Market closes at 4:00 PM Eastern Time
+    eastern = ZoneInfo("America/New_York")
+    market_close = datetime(trade_date.year, trade_date.month, trade_date.day, 16, 0, 0, tzinfo=eastern)
+
+    # Format as ISO 8601 with timezone offset
+    return market_close.isoformat()
+
+
 @app.put("/api/stocks")
 async def update_stocks(request: StocksUpdateRequest):
     """Update stocks - fetches prices for changed symbols and persists to stockapp.json (source of truth)."""
@@ -331,8 +355,9 @@ async def update_stocks(request: StocksUpdateRequest):
                 history = ticker.history(period="2d")
                 if not history.empty:
                     stock_dict["price"] = round(float(history['Close'].iloc[-1]), 2)
-                    # Get the actual date of the closed price from yfinance
-                    price_date = history.index[-1].strftime("%Y-%m-%d")
+                    # Get the actual market close time in +08:00 timezone
+                    trading_date = history.index[-1]
+                    price_date = format_market_close_time(trading_date)
                     stock_dict["date"] = price_date
 
                     # Calculate percentage change from previous day
@@ -571,15 +596,17 @@ async def update_email():
                 "name": s["name"],
                 "price": s["price"],
                 "changePercent": s["changePercent"],
+                "date": s.get("date", ""),
                 "news": news
             })
 
-    # Get all stocks for diffUntilBuyPrice (symbol, price, diff)
+    # Get all stocks for diffUntilBuyPrice (symbol, price, diff, date)
     diff_to_buy = [
         {
             "symbol": s["symbol"],
             "price": s["price"],
-            "diff": s.get("diff", 0)
+            "diff": s.get("diff", 0),
+            "date": s.get("date", "")
         }
         for s in stock_data["stocks"]
     ]

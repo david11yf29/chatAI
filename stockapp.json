@@ -10,7 +10,7 @@
       "name": "Micron Technology, Inc.",
       "price": 362.75,
       "changePercent": 7.76,
-      "date": "2026-01-16",
+      "date": "2026-01-16T16:00:00-05:00",
       "buyPrice": 33.0,
       "diff": -90.9
     },
@@ -19,7 +19,7 @@
       "name": "Applied Optoelectronics, Inc.",
       "price": 37.04,
       "changePercent": 0.11,
-      "date": "2026-01-16",
+      "date": "2026-01-16T16:00:00-05:00",
       "buyPrice": 35.0,
       "diff": -5.51
     },
@@ -28,7 +28,7 @@
       "name": "Palantir Technologies Inc.",
       "price": 170.96,
       "changePercent": -3.45,
-      "date": "2026-01-16",
+      "date": "2026-01-16T16:00:00-05:00",
       "buyPrice": 70.0,
       "diff": -59.05
     }
