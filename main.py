@@ -317,15 +317,11 @@ async def update_stocks(request: StocksUpdateRequest):
 
     for i, stock in enumerate(request.stocks):
         stock_dict = stock.model_dump()
+        symbol = stock.symbol.upper().strip()
 
-        # Check if symbol changed (compare with existing)
-        symbol_changed = (i >= len(existing_stocks) or
-                         stock.symbol.upper() != existing_stocks[i].get("symbol", "").upper())
-
-        if symbol_changed:
-            # Fetch from yfinance for changed symbols
-            symbol = stock.symbol.upper().strip()
-            logger.info(f"Symbol changed at index {i}, fetching data for {symbol}")
+        # Always fetch fresh prices for stocks with valid symbols
+        if symbol:
+            logger.info(f"Fetching fresh data for {symbol}")
             try:
                 ticker = yf.Ticker(symbol)
                 info = ticker.info

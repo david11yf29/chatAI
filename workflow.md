@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-20 (changed yfinance period from 5d to 2d)
+> - **Last Updated:** 2026-01-20 (always fetch fresh prices on Update, changed yfinance period from 5d to 2d)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -112,9 +112,7 @@ This document describes the detailed workflow for each of the four main buttons 
    - Extracts existing stocks to compare
 
 7. **Process Each Stock**
-   - For each stock in the request:
-
-   **If Symbol Changed (new stock or symbol modified):**
+   - For each stock in the request (skips stocks with empty symbols):
 
    8. **Fetch Live Price Data from yfinance**
       - Creates ticker object: `yf.Ticker(symbol)`
@@ -129,11 +127,8 @@ This document describes the detailed workflow for each of the four main buttons 
        - Compares current close vs previous close
        - Formula: `((current - previous) / previous) * 100`
 
-   **If Symbol NOT Changed:**
-   - Price data is NOT refetched (preserves existing data)
-
 11. **Calculate Diff to Buy Price**
-    - For all stocks (changed or not):
+    - For all stocks:
     - Formula: `diff = ((buyPrice - price) / price) * 100`
     - Negative diff = above buy price
     - Positive diff = below buy price (good opportunity)
