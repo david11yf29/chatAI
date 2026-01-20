@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-20 (date format now includes market close time as ISO 8601 with timezone, renamed diffToBuyPrice to diffUntilBuyPrice, always fetch fresh prices on Update, changed yfinance period from 5d to 2d)
+> - **Last Updated:** 2026-01-20 (added default buyPrice logic: if user doesn't input buyPrice, defaults to price * 0.9)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -127,40 +127,46 @@ This document describes the detailed workflow for each of the four main buttons 
        - Compares current close vs previous close
        - Formula: `((current - previous) / previous) * 100`
 
-11. **Calculate Diff to Buy Price**
+11. **Set Default Buy Price (if not provided)**
+    - If `buyPrice` is 0 (user didn't input any value):
+    - Formula: `buyPrice = price * 0.9`
+    - Example: If price is $37.04, default buyPrice = $33.34
+    - This gives a 10% discount target as the default buy price
+
+12. **Calculate Diff to Buy Price**
     - For all stocks:
     - Formula: `diff = ((buyPrice - price) / price) * 100`
     - Negative diff = above buy price
     - Positive diff = below buy price (good opportunity)
 
-12. **Persist to Database**
+13. **Persist to Database**
     - Writes updated stocks array to `stockapp.json`
     - Preserves other fields like `search`, `_metadata`
 
-13. **Return Response**
+14. **Return Response**
     - Returns success message with updated stocks array
 
 #### Phase 4: Frontend Updates
 
-14. **Response Received**
+15. **Response Received**
     - Frontend checks if response is `ok` (status 200-299)
 
-15. **Re-fetch from Server**
+16. **Re-fetch from Server**
     - Calls `fetchStocks()` via `GET /api/stocks`
     - Ensures UI shows data from source of truth
 
-16. **UI Re-render**
+17. **UI Re-render**
     - `renderStocks(currentStocks)` displays updated data with fresh prices
 
 #### Phase 5: Success Feedback
 
-17. **Hide Loading Overlay**
+18. **Hide Loading Overlay**
     - `setLoading(false)` removes the overlay
 
-18. **Show Success Message**
+19. **Show Success Message**
     - Button text changes to "Saved!"
 
-19. **Auto-reset (after 1500ms)**
+20. **Auto-reset (after 1500ms)**
     - Button text reverts to "Update"
     - Button re-enabled
 

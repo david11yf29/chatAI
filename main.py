@@ -376,6 +376,13 @@ async def update_stocks(request: StocksUpdateRequest):
         # Always calculate diff: percentage difference from buy price (negative = above buy price)
         price = stock_dict.get("price", 0)
         buy_price = stock_dict.get("buyPrice", 0)
+
+        # If buyPrice is 0 (user didn't input any value), default to price * 0.9
+        if buy_price == 0 and price > 0:
+            buy_price = round(price * 0.9, 2)
+            stock_dict["buyPrice"] = buy_price
+            logger.info(f"Set default buyPrice for {symbol}: {buy_price} (90% of price {price})")
+
         if price > 0:
             diff = round(((buy_price - price) / price) * 100, 2)
             stock_dict["diff"] = diff
