@@ -17,6 +17,8 @@ import httpx
 from bs4 import BeautifulSoup
 import re
 import yfinance as yf
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.date import DateTrigger
 
 load_dotenv()
 
@@ -50,6 +52,9 @@ for handler in root_logger.handlers:
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+# Global scheduler for scheduled tasks
+scheduler = AsyncIOScheduler()
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -498,9 +503,12 @@ Return ONLY the final summary. No planning text, no "I will", no "Let me" - just
     return final_response
 
 
-@app.post("/api/update-email")
-async def update_email():
-    """Update email.json with dailyPriceChange and needToDropUntilBuyPrice from stockapp.json."""
+async def _perform_update_email() -> dict:
+    """Core logic to update email.json with dailyPriceChange and needToDropUntilBuyPrice from stockapp.json.
+
+    Returns:
+        dict: Result with success status and counts
+    """
     # Read stockapp.json
     with open("stockapp.json", "r") as f:
         stock_data = json.load(f)
@@ -546,6 +554,12 @@ async def update_email():
         "dailyPriceChangeCount": len(filtered),
         "needToDropUntilBuyPriceCount": len(diff_to_buy)
     }
+
+
+@app.post("/api/update-email")
+async def update_email():
+    """Update email.json with dailyPriceChange and needToDropUntilBuyPrice from stockapp.json."""
+    return await _perform_update_email()
 
 # ============================================================================
 # Apple-Inspired Email Template Helper Functions
@@ -858,9 +872,12 @@ def generate_stock_email_html():
 </body>
 </html>'''
 
-@app.post("/api/send-test-email")
-async def send_test_email():
-    """Send a test email using configuration from email.json via Resend."""
+async def _perform_send_email() -> dict:
+    """Core logic to send email using configuration from email.json via Resend.
+
+    Returns:
+        dict: Result with status, recipients, and response details
+    """
     # Load email configuration from email.json
     with open("email.json", "r") as f:
         email_config = json.load(f)
@@ -880,8 +897,8 @@ async def send_test_email():
     email_html = generate_stock_email_html()
 
     # Send via Resend API
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
+    async with httpx.AsyncClient() as http_client:
+        response = await http_client.post(
             "https://api.resend.com/emails",
             headers={
                 "Authorization": f"Bearer {resend_api_key}",
@@ -899,6 +916,12 @@ async def send_test_email():
         return {"status": "sent", "recipients": email_to, "response": response.json()}
     else:
         return {"status": "error", "code": response.status_code, "message": response.text}
+
+
+@app.post("/api/send-test-email")
+async def send_test_email():
+    """Send a test email using configuration from email.json via Resend."""
+    return await _perform_send_email()
 
 @app.get("/favicon.ico")
 async def favicon():
@@ -1112,6 +1135,134 @@ async def chat(chat_request: ChatRequest, request: Request):
 
         raise
 
+
+# ============================================================================
+# Scheduled Task Functions
+# ============================================================================
+
+def _advance_scheduled_tasks():
+    """Advance trigger times by 1 day for both tasks and reschedule the jobs.
+
+    After a scheduled task runs successfully, this function:
+    1. Sets both tasks to enable: false
+    2. Advances both trigger_time values by 1 day
+    3. Reschedules the jobs for the new times
+    """
+    try:
+        # Read current schedule
+        with open("schedule.json", "r") as f:
+            schedule_data = json.load(f)
+
+        # Process both tasks
+        for task_name in ["Update Email", "Send Email"]:
+            if task_name in schedule_data:
+                task = schedule_data[task_name]
+                # Set enable to false
+                task["enable"] = False
+
+                # Parse current trigger time and add 1 day
+                current_time = datetime.fromisoformat(task["trigger_time"])
+                new_time = current_time + timedelta(days=1)
+                task["trigger_time"] = new_time.isoformat()
+
+                logger.info(f"Advanced '{task_name}' trigger time to {task['trigger_time']}")
+
+        # Write updated schedule back
+        with open("schedule.json", "w") as f:
+            json.dump(schedule_data, f, indent=2)
+
+        logger.info("Schedule updated: both tasks disabled and trigger times advanced by 1 day")
+
+    except Exception as e:
+        logger.error(f"Error advancing scheduled tasks: {e}")
+
+
+async def scheduled_update_email():
+    """Wrapper for scheduled Update Email execution with logging."""
+    logger.info("=" * 60)
+    logger.info("SCHEDULED TASK: Update Email - Starting")
+    logger.info("=" * 60)
+
+    try:
+        result = await _perform_update_email()
+        logger.info(f"SCHEDULED TASK: Update Email - Completed successfully: {result}")
+    except Exception as e:
+        logger.error(f"SCHEDULED TASK: Update Email - Failed with error: {e}")
+        raise
+    finally:
+        # Advance schedule after execution (both success and failure)
+        _advance_scheduled_tasks()
+
+
+async def scheduled_send_email():
+    """Wrapper for scheduled Send Email execution with logging."""
+    logger.info("=" * 60)
+    logger.info("SCHEDULED TASK: Send Email - Starting")
+    logger.info("=" * 60)
+
+    try:
+        result = await _perform_send_email()
+        logger.info(f"SCHEDULED TASK: Send Email - Completed successfully: {result}")
+    except Exception as e:
+        logger.error(f"SCHEDULED TASK: Send Email - Failed with error: {e}")
+        raise
+
+
+def setup_scheduled_tasks():
+    """Read schedule.json and schedule jobs for enabled tasks."""
+    logger.info("Setting up scheduled tasks from schedule.json...")
+
+    try:
+        with open("schedule.json", "r") as f:
+            schedule_data = json.load(f)
+    except FileNotFoundError:
+        logger.warning("schedule.json not found - no scheduled tasks will be configured")
+        return
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse schedule.json: {e}")
+        return
+
+    now = datetime.now(ZoneInfo("America/New_York"))
+
+    # Process Update Email task
+    update_email_config = schedule_data.get("Update Email", {})
+    if update_email_config.get("enable", False):
+        trigger_time_str = update_email_config.get("trigger_time")
+        if trigger_time_str:
+            trigger_time = datetime.fromisoformat(trigger_time_str)
+            if trigger_time > now:
+                scheduler.add_job(
+                    scheduled_update_email,
+                    trigger=DateTrigger(run_date=trigger_time),
+                    id="update_email_scheduled",
+                    replace_existing=True
+                )
+                logger.info(f"Scheduled task 'Update Email' for {trigger_time_str}")
+            else:
+                logger.warning(f"Skipping 'Update Email' - trigger time {trigger_time_str} has already passed")
+    else:
+        logger.info("'Update Email' task is disabled in schedule.json")
+
+    # Process Send Email task
+    send_email_config = schedule_data.get("Send Email", {})
+    if send_email_config.get("enable", False):
+        trigger_time_str = send_email_config.get("trigger_time")
+        if trigger_time_str:
+            trigger_time = datetime.fromisoformat(trigger_time_str)
+            if trigger_time > now:
+                scheduler.add_job(
+                    scheduled_send_email,
+                    trigger=DateTrigger(run_date=trigger_time),
+                    id="send_email_scheduled",
+                    replace_existing=True
+                )
+                logger.info(f"Scheduled task 'Send Email' for {trigger_time_str}")
+            else:
+                logger.warning(f"Skipping 'Send Email' - trigger time {trigger_time_str} has already passed")
+    else:
+        logger.info("'Send Email' task is disabled in schedule.json")
+
+
 @app.on_event("startup")
 async def startup_event():
     logger.info("=" * 80)
@@ -1138,6 +1289,11 @@ async def startup_event():
     # Log FastAPI configuration
     logger.info(f"FastAPI version: {FastAPI.__version__ if hasattr(FastAPI, '__version__') else 'unknown'}")
 
+    # Setup and start APScheduler for scheduled tasks
+    setup_scheduled_tasks()
+    scheduler.start()
+    logger.info("APScheduler started")
+
     logger.info("Application startup completed successfully")
     logger.info("=" * 80)
 
@@ -1146,5 +1302,10 @@ async def shutdown_event():
     logger.info("=" * 80)
     logger.info("Application shutting down")
     logger.info(f"Shutdown time: {datetime.now().isoformat()}")
+
+    # Shutdown APScheduler
+    scheduler.shutdown(wait=False)
+    logger.info("APScheduler stopped")
+
     logger.info("Cleanup completed")
     logger.info("=" * 80)
