@@ -26,7 +26,7 @@
         "news": "Palantir\u2019s 3.45% drop appears tied to renewed valuation concerns and a broader rotation out of software/AI stocks; the company\u2019s shares are down about 17% from their recent high despite a massive multi-year run. Wall Street is split\u2014bulls cite strong AI-platform execution and results, while bears warn the premium valuation is hard to justify\u2014adding pressure to the stock."
       }
     ],
-    "diffToBuyPrice": [
+    "diffUntilBuyPrice": [
       {
         "symbol": "MU",
         "price": 362.75,
