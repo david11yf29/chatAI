@@ -133,7 +133,7 @@ This document describes the detailed workflow for each of the four main buttons 
     - Example: If price is $37.04, default buyPrice = $33.34
     - This gives a 10% discount target as the default buy price
 
-12. **Calculate Diff to Buy Price**
+12. **Calculate Need to Drop Until Buy Price**
     - For all stocks:
     - Formula: `diff = ((buyPrice - price) / price) * 100`
     - Negative diff = above buy price
@@ -292,7 +292,7 @@ This document describes the detailed workflow for each of the four main buttons 
 
 10. **Update email.json**
     - **dailyPriceChange:** Array of stocks with >3% change + AI-generated news + date
-    - **diffUntilBuyPrice:** All stocks with buy price comparison + date
+    - **needToDropUntilBuyPrice:** All stocks with buy price comparison + date
 
 11. **Return Response**
     - Returns JSON with counts:
@@ -300,7 +300,7 @@ This document describes the detailed workflow for each of the four main buttons 
       {
           "success": True,
           "dailyPriceChangeCount": len(filtered),
-          "diffUntilBuyPriceCount": len(diff_to_buy)
+          "needToDropUntilBuyPriceCount": len(diff_to_buy)
       }
       ```
 
@@ -326,7 +326,7 @@ This document describes the detailed workflow for each of the four main buttons 
 
 ### Database Operations
 - **Read:** `stockapp.json`, `email.json`
-- **Write:** `email.json` (updates `content.dailyPriceChange` and `content.diffUntilBuyPrice`)
+- **Write:** `email.json` (updates `content.dailyPriceChange` and `content.needToDropUntilBuyPrice`)
 
 ### Error Handling
 - Loading overlay is hidden
@@ -389,7 +389,7 @@ This document describes the detailed workflow for each of the four main buttons 
 
    a. **Load Email Content**
       - Reads `email.json` to get current content
-      - Extracts `dailyPriceChange` and `diffUntilBuyPrice` arrays
+      - Extracts `dailyPriceChange` and `needToDropUntilBuyPrice` arrays
 
    b. **Generate Daily Price Change Section**
       - For each stock in `dailyPriceChange`:
@@ -401,8 +401,8 @@ This document describes the detailed workflow for each of the four main buttons 
           - Latest news (up to 3 headlines)
       - If no price changes: displays "No significant price changes today"
 
-   c. **Generate Diff to Buy Price Section**
-      - For each stock in `diffUntilBuyPrice`:
+   c. **Generate Need to Drop Until Buy Price Section**
+      - For each stock in `needToDropUntilBuyPrice`:
         - Calls `generate_diff_card_html()` (lines 710-736)
         - Generates card with:
           - Symbol and current price
@@ -416,7 +416,7 @@ This document describes the detailed workflow for each of the four main buttons 
         - Apple-inspired design
         - Header with Stock Tracker branding
         - Daily Price Change section
-        - Diff to Buy Price section
+        - Need to Drop Until Buy Price section
         - Footer with generation date
       - Uses inline CSS for email client compatibility
       - Responsive design for mobile devices
