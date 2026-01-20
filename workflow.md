@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-20 (always fetch fresh prices on Update, changed yfinance period from 5d to 2d)
+> - **Last Updated:** 2026-01-20 (renamed diffToBuyPrice to diffUntilBuyPrice, always fetch fresh prices on Update, changed yfinance period from 5d to 2d)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -284,7 +284,7 @@ This document describes the detailed workflow for each of the four main buttons 
 
 10. **Update email.json**
     - **dailyPriceChange:** Array of stocks with >3% change + AI-generated news
-    - **diffToBuyPrice:** All stocks with buy price comparison
+    - **diffUntilBuyPrice:** All stocks with buy price comparison
 
 11. **Return Response**
     - Returns JSON with counts:
@@ -292,7 +292,7 @@ This document describes the detailed workflow for each of the four main buttons 
       {
           "success": True,
           "dailyPriceChangeCount": len(filtered),
-          "diffToBuyPriceCount": len(diff_to_buy)
+          "diffUntilBuyPriceCount": len(diff_to_buy)
       }
       ```
 
@@ -318,7 +318,7 @@ This document describes the detailed workflow for each of the four main buttons 
 
 ### Database Operations
 - **Read:** `stockapp.json`, `email.json`
-- **Write:** `email.json` (updates `content.dailyPriceChange` and `content.diffToBuyPrice`)
+- **Write:** `email.json` (updates `content.dailyPriceChange` and `content.diffUntilBuyPrice`)
 
 ### Error Handling
 - Loading overlay is hidden
@@ -381,7 +381,7 @@ This document describes the detailed workflow for each of the four main buttons 
 
    a. **Load Email Content**
       - Reads `email.json` to get current content
-      - Extracts `dailyPriceChange` and `diffToBuyPrice` arrays
+      - Extracts `dailyPriceChange` and `diffUntilBuyPrice` arrays
 
    b. **Generate Daily Price Change Section**
       - For each stock in `dailyPriceChange`:
@@ -394,7 +394,7 @@ This document describes the detailed workflow for each of the four main buttons 
       - If no price changes: displays "No significant price changes today"
 
    c. **Generate Diff to Buy Price Section**
-      - For each stock in `diffToBuyPrice`:
+      - For each stock in `diffUntilBuyPrice`:
         - Calls `generate_diff_card_html()` (lines 710-736)
         - Generates card with:
           - Symbol and current price

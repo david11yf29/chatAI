@@ -555,7 +555,7 @@ Return ONLY the final summary. No planning text, no "I will", no "Let me" - just
 
 @app.post("/api/update-email")
 async def update_email():
-    """Update email.json with dailyPriceChange and diffToBuyPrice from stockapp.json."""
+    """Update email.json with dailyPriceChange and diffUntilBuyPrice from stockapp.json."""
     # Read stockapp.json
     with open("stockapp.json", "r") as f:
         stock_data = json.load(f)
@@ -574,7 +574,7 @@ async def update_email():
                 "news": news
             })
 
-    # Get all stocks for diffToBuyPrice (symbol, price, diff)
+    # Get all stocks for diffUntilBuyPrice (symbol, price, diff)
     diff_to_buy = [
         {
             "symbol": s["symbol"],
@@ -589,7 +589,7 @@ async def update_email():
         email_data = json.load(f)
 
     email_data["content"]["dailyPriceChange"] = filtered
-    email_data["content"]["diffToBuyPrice"] = diff_to_buy
+    email_data["content"]["diffUntilBuyPrice"] = diff_to_buy
 
     with open("email.json", "w") as f:
         json.dump(email_data, f, indent=2)
@@ -597,7 +597,7 @@ async def update_email():
     return {
         "success": True,
         "dailyPriceChangeCount": len(filtered),
-        "diffToBuyPriceCount": len(diff_to_buy)
+        "diffUntilBuyPriceCount": len(diff_to_buy)
     }
 
 # ============================================================================
@@ -740,7 +740,7 @@ def generate_stock_email_html():
 
     content = email_config.get("content", {})
     daily_price_change = content.get("dailyPriceChange", [])
-    diff_to_buy_price = content.get("diffToBuyPrice", [])
+    diff_to_buy_price = content.get("diffUntilBuyPrice", [])
 
     # Generate Daily Price Change cards
     daily_change_cards = ""
