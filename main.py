@@ -174,7 +174,7 @@ Provide only the summary, no additional commentary."""
         logger.info(f"[summarize_page_content] Summarizing content for {symbol} from {url}")
 
         summary_response = client.chat.completions.create(
-            model="gpt-5",
+            model="supermind-agent-v1",
             messages=[{"role": "user", "content": summary_prompt}]
         )
 
@@ -454,108 +454,21 @@ CRITICAL: After web_search, IMMEDIATELY call read_page on a relevant article URL
 Return ONLY the final summary. No planning text, no "I will", no "Let me" - just the news summary."""
 
     messages = [{"role": "user", "content": prompt}]
-    max_turns = 4
     final_response = ""
 
     logger.info(f"[get_stock_news] Starting news fetch for {symbol} with preferred sources: {news_sources}")
 
     try:
-        for turn in range(max_turns):
-            logger.info(f"[get_stock_news] Turn {turn + 1}/{max_turns} for {symbol}")
+        # supermind-agent-v1 has built-in web search - single call handles everything
+        logger.info(f"[get_stock_news] Calling supermind-agent-v1 for {symbol}")
 
-            response = client.chat.completions.create(
-                model="gpt-5",
-                messages=messages,
-                tools=TOOLS
-            )
+        response = client.chat.completions.create(
+            model="supermind-agent-v1",
+            messages=messages
+        )
 
-            message = response.choices[0].message
-            response_content = message.content if message.content else ""
-            tool_calls = message.tool_calls if hasattr(message, 'tool_calls') and message.tool_calls else None
-
-            logger.info(f"[get_stock_news] Response content length: {len(response_content)}, has tool_calls: {bool(tool_calls)}")
-
-            if tool_calls:
-                logger.info(f"[get_stock_news] Tool calls: {[tc.function.name for tc in tool_calls]}")
-
-                # Add assistant's message with tool calls
-                messages.append({
-                    "role": "assistant",
-                    "content": response_content,
-                    "tool_calls": [
-                        {
-                            "id": tc.id,
-                            "type": tc.type,
-                            "function": {
-                                "name": tc.function.name,
-                                "arguments": tc.function.arguments
-                            }
-                        }
-                        for tc in tool_calls
-                    ]
-                })
-
-                # Execute each tool call
-                for tool_call in tool_calls:
-                    function_name = tool_call.function.name
-                    function_args = json.loads(tool_call.function.arguments)
-
-                    logger.info(f"[get_stock_news] Executing {function_name} with args: {function_args}")
-
-                    try:
-                        if function_name == "web_search":
-                            result = web_search(function_args.get("query", ""))
-                        elif function_name == "read_page":
-                            url = function_args.get("url", "")
-                            result = read_page(url)
-                            # If read_page succeeded with content, summarize it
-                            if "text" in result and result["text"] and "error" not in result:
-                                logger.info(f"[get_stock_news] Summarizing page content for {symbol} from {url}")
-                                summary = summarize_page_content(url, result["text"], symbol, name)
-                                result = {
-                                    "url": url,
-                                    "summary": summary,
-                                    "original_length": result.get("length", 0)
-                                }
-                        else:
-                            result = {"error": f"Unknown function: {function_name}"}
-                    except Exception as tool_error:
-                        logger.error(f"[get_stock_news] Tool execution error for {symbol}: {tool_error}")
-                        result = {"error": str(tool_error)}
-
-                    logger.info(f"[get_stock_news] Tool result preview: {str(result)[:200]}")
-
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "name": function_name,
-                        "content": json.dumps(result)
-                    })
-
-                # Continue to next turn to get AI response with tool results
-                continue
-            else:
-                # No tool calls - this is the final response
-                final_response = response_content
-                logger.info(f"[get_stock_news] Final response for {symbol}: {final_response[:200] if final_response else 'EMPTY'}")
-                break
-
-        if not final_response:
-            logger.warning(f"[get_stock_news] No final response for {symbol} after {max_turns} turns, forcing final call")
-            # Force a final response by calling without tools
-            messages.append({
-                "role": "user",
-                "content": f"Based on the information gathered above, provide a 2-3 sentence summary explaining why {symbol} stock {direction} by {abs(change_percent):.2f}%. Return ONLY the summary - no intro phrases like 'Here is' or 'Based on', just the factual news summary."
-            })
-            try:
-                final_call = client.chat.completions.create(
-                    model="gpt-5",
-                    messages=messages
-                )
-                final_response = final_call.choices[0].message.content or ""
-                logger.info(f"[get_stock_news] Forced final response for {symbol}: {final_response[:200] if final_response else 'EMPTY'}")
-            except Exception as final_error:
-                logger.error(f"[get_stock_news] Error in forced final call for {symbol}: {final_error}")
+        final_response = response.choices[0].message.content or ""
+        logger.info(f"[get_stock_news] Response for {symbol}: {final_response[:200] if final_response else 'EMPTY'}")
 
     except Exception as e:
         logger.error(f"[get_stock_news] Exception for {symbol}: {e}", exc_info=True)
@@ -1087,261 +1000,81 @@ async def chat(chat_request: ChatRequest, request: Request):
             {"role": "user", "content": chat_request.user_message}
         ]
 
-        # Agentic Loop: Allow up to 3 turns
-        max_turns = 3
-        final_response = None
-
-        for turn in range(max_turns):
-            logger.info(
-                f"=== Agentic Loop - Turn {turn + 1}/{max_turns} ===",
-                extra={'request_id': request_id}
-            )
-
-            # Log API call configuration
-            api_config = {
-                "model": "gpt-5",
-                "base_url": str(client.base_url),
-                "messages_count": len(messages)
-            }
-            logger.info(
-                f"Calling OpenAI API - Config: {json.dumps(api_config)}",
-                extra={'request_id': request_id}
-            )
-
-            logger.debug(
-                f"API Request payload - Model: gpt-5 - Messages count: {len(messages)}",
-                extra={'request_id': request_id}
-            )
-
-            api_start_time = time.time()
-            response = client.chat.completions.create(
-                model="gpt-5",
-                messages=messages,
-                tools=TOOLS
-            )
-            api_duration = time.time() - api_start_time
-
-            logger.debug(
-                f"OpenAI API call completed - Duration: {api_duration:.3f}s",
-                extra={'request_id': request_id}
-            )
-
-            # Extract response details
-            message = response.choices[0].message
-            response_content = message.content if message.content else ""
-            finish_reason = response.choices[0].finish_reason if hasattr(response.choices[0], 'finish_reason') else 'N/A'
-
-            # Log token usage details
-            if hasattr(response, 'usage'):
-                token_details = {
-                    "prompt_tokens": response.usage.prompt_tokens,
-                    "completion_tokens": response.usage.completion_tokens,
-                    "total_tokens": response.usage.total_tokens
-                }
-                logger.info(
-                    f"Token usage - {json.dumps(token_details)}",
-                    extra={'request_id': request_id}
-                )
-
-            # Check if the model wants to call a tool
-            tool_calls = message.tool_calls if hasattr(message, 'tool_calls') and message.tool_calls else None
-
-            if tool_calls:
-                # Agent decided to call tools
-                print(f"\n[Agent] Decided to call tool: '{tool_calls[0].function.name}'")
-                logger.info(
-                    f"[Agent] Decided to call tool: '{tool_calls[0].function.name}'",
-                    extra={'request_id': request_id}
-                )
-
-                logger.info(
-                    f"LLM requested tool call(s): {len(tool_calls)} tool(s)",
-                    extra={'request_id': request_id}
-                )
-
-                # Add assistant's message with tool calls to conversation
-                messages.append({
-                    "role": "assistant",
-                    "content": response_content,
-                    "tool_calls": [
-                        {
-                            "id": tc.id,
-                            "type": tc.type,
-                            "function": {
-                                "name": tc.function.name,
-                                "arguments": tc.function.arguments
-                            }
-                        }
-                        for tc in tool_calls
-                    ]
-                })
-
-                # Execute each tool call
-                for tool_call in tool_calls:
-                    function_name = tool_call.function.name
-                    function_args = json.loads(tool_call.function.arguments)
-
-                    logger.info(
-                        f"Executing tool - ID: {tool_call.id} - Function: {function_name} - "
-                        f"Arguments: {function_args}",
-                        extra={'request_id': request_id}
-                    )
-
-                    # Execute the appropriate tool function
-                    if function_name == "web_search":
-                        tool_start_time = time.time()
-                        search_result = web_search(function_args.get("query", ""))
-                        tool_duration = time.time() - tool_start_time
-
-                        # Format tool output for logging
-                        tool_output_preview = json.dumps(search_result)[:200] + "..." if len(json.dumps(search_result)) > 200 else json.dumps(search_result)
-
-                        print(f"[System] Tool Output: '{tool_output_preview}'")
-                        logger.info(
-                            f"[System] Tool Output: '{tool_output_preview}'",
-                            extra={'request_id': request_id}
-                        )
-
-                        logger.info(
-                            f"Tool execution completed - Duration: {tool_duration:.3f}s - "
-                            f"Result size: {len(json.dumps(search_result))} bytes",
-                            extra={'request_id': request_id}
-                        )
-
-                        # Add tool result to conversation
-                        messages.append({
-                            "role": "tool",
-                            "tool_call_id": tool_call.id,
-                            "name": function_name,
-                            "content": json.dumps(search_result)
-                        })
-
-                    elif function_name == "read_page":
-                        tool_start_time = time.time()
-                        page_result = read_page(function_args.get("url", ""))
-                        tool_duration = time.time() - tool_start_time
-
-                        # Format tool output for logging
-                        tool_output_preview = json.dumps(page_result)[:200] + "..." if len(json.dumps(page_result)) > 200 else json.dumps(page_result)
-
-                        print(f"[System] Tool Output: '{tool_output_preview}'")
-                        logger.info(
-                            f"[System] Tool Output: '{tool_output_preview}'",
-                            extra={'request_id': request_id}
-                        )
-
-                        logger.info(
-                            f"Tool execution completed - Duration: {tool_duration:.3f}s - "
-                            f"Result size: {len(json.dumps(page_result))} bytes",
-                            extra={'request_id': request_id}
-                        )
-
-                        # Add tool result to conversation
-                        messages.append({
-                            "role": "tool",
-                            "tool_call_id": tool_call.id,
-                            "name": function_name,
-                            "content": json.dumps(page_result)
-                        })
-
-                    else:
-                        logger.warning(
-                            f"Unknown tool function: {function_name}",
-                            extra={'request_id': request_id}
-                        )
-
-                # Continue to next turn to get LLM's response with tool results
-                continue
-
-            else:
-                # No tool calls - this is the final response
-                final_response = response_content
-
-                print(f"[Agent] Final Answer: '{final_response}'")
-                logger.info(
-                    f"[Agent] Final Answer: '{final_response}'",
-                    extra={'request_id': request_id}
-                )
-
-                logger.info(
-                    f"OpenAI API response received - Duration: {api_duration:.3f}s - "
-                    f"Response length: {len(response_content)} chars - "
-                    f"Model: {response.model} - "
-                    f"Finish reason: {finish_reason} - "
-                    f"Tokens used: {response.usage.total_tokens if hasattr(response, 'usage') else 'N/A'}",
-                    extra={'request_id': request_id}
-                )
-
-                # Log response preview
-                response_preview = response_content[:100] + "..." if len(response_content) > 100 else response_content
-                logger.debug(
-                    f"Response preview: {response_preview}",
-                    extra={'request_id': request_id}
-                )
-
-                # Log response structure details
-                logger.debug(
-                    f"Response structure - Choices count: {len(response.choices)} - "
-                    f"Response ID: {response.id if hasattr(response, 'id') else 'N/A'} - "
-                    f"Created: {response.created if hasattr(response, 'created') else 'N/A'}",
-                    extra={'request_id': request_id}
-                )
-
-                # Exit the loop
-                break
-
-        # If we exhausted all turns without a final response
-        if final_response is None:
-            final_response = "I apologize, but I've reached the maximum number of tool calls. Please try rephrasing your question."
-            logger.warning(
-                f"Max turns ({max_turns}) reached without final response",
-                extra={'request_id': request_id}
-            )
-
-        result = {
-            "response": final_response,
-            "finish_reason": finish_reason,
-            "turns_used": turn + 1
+        # Log API call configuration
+        api_config = {
+            "model": "supermind-agent-v1",
+            "base_url": str(client.base_url),
+            "messages_count": len(messages)
         }
-
-        logger.debug(
-            f"Returning chat response - Size: {len(json.dumps(result))} bytes - Turns used: {turn + 1}",
+        logger.info(
+            f"Calling supermind-agent-v1 API - Config: {json.dumps(api_config)}",
             extra={'request_id': request_id}
         )
 
-        # Print the entire message history that led to this response
+        api_start_time = time.time()
+        # supermind-agent-v1 has built-in web search - no tools parameter needed
+        response = client.chat.completions.create(
+            model="supermind-agent-v1",
+            messages=messages
+        )
+        api_duration = time.time() - api_start_time
+
+        logger.debug(
+            f"supermind-agent-v1 API call completed - Duration: {api_duration:.3f}s",
+            extra={'request_id': request_id}
+        )
+
+        # Extract response details
+        message = response.choices[0].message
+        final_response = message.content if message.content else ""
+        finish_reason = response.choices[0].finish_reason if hasattr(response.choices[0], 'finish_reason') else 'N/A'
+
+        # Log token usage details
+        if hasattr(response, 'usage'):
+            token_details = {
+                "prompt_tokens": response.usage.prompt_tokens,
+                "completion_tokens": response.usage.completion_tokens,
+                "total_tokens": response.usage.total_tokens
+            }
+            logger.info(
+                f"Token usage - {json.dumps(token_details)}",
+                extra={'request_id': request_id}
+            )
+
+        print(f"[Agent] Final Answer: '{final_response}'")
+        logger.info(
+            f"[Agent] Final Answer: '{final_response}'",
+            extra={'request_id': request_id}
+        )
+
+        logger.info(
+            f"supermind-agent-v1 response received - Duration: {api_duration:.3f}s - "
+            f"Response length: {len(final_response)} chars - "
+            f"Model: {response.model} - "
+            f"Finish reason: {finish_reason} - "
+            f"Tokens used: {response.usage.total_tokens if hasattr(response, 'usage') else 'N/A'}",
+            extra={'request_id': request_id}
+        )
+
+        result = {
+            "response": final_response,
+            "finish_reason": finish_reason
+        }
+
+        logger.debug(
+            f"Returning chat response - Size: {len(json.dumps(result))} bytes",
+            extra={'request_id': request_id}
+        )
+
+        # Print the user message and response
         print("\n" + "=" * 80)
-        print("COMPLETE MESSAGE HISTORY")
-        print("=" * 80)
-        for i, msg in enumerate(messages, 1):
-            print(f"\n--- Message {i} ---")
-            print(f"Role: {msg.get('role', 'N/A')}")
-
-            if msg.get('role') == 'user':
-                print(f"Content: {msg.get('content', 'N/A')}")
-
-            elif msg.get('role') == 'assistant':
-                print(f"Content: {msg.get('content', 'N/A')}")
-                if 'tool_calls' in msg:
-                    print("\nTool Calls:")
-                    for tc in msg['tool_calls']:
-                        print(f"  - ID: {tc.get('id', 'N/A')}")
-                        print(f"    Type: {tc.get('type', 'N/A')}")
-                        print(f"    Function Name: {tc.get('function', {}).get('name', 'N/A')}")
-                        print(f"    Function Arguments: {tc.get('function', {}).get('arguments', 'N/A')}")
-
-            elif msg.get('role') == 'tool':
-                print(f"Tool Call ID: {msg.get('tool_call_id', 'N/A')}")
-                print(f"Tool Name: {msg.get('name', 'N/A')}")
-                print(f"Tool Result (preview): {msg.get('content', 'N/A')[:500]}...")
-
-        print("\n" + "=" * 80)
-        print(f"FINAL RESPONSE TO USER: {final_response}")
+        print(f"USER: {chat_request.user_message}")
+        print(f"RESPONSE: {final_response}")
         print("=" * 80 + "\n")
 
-        # Also log the full message history
+        # Log the message
         logger.info(
-            f"Complete message history: {json.dumps(messages, indent=2)}",
+            f"Chat completed - User: {chat_request.user_message[:100]}... Response: {final_response[:100]}...",
             extra={'request_id': request_id}
         )
 
