@@ -40,7 +40,7 @@ for s in stock_data["stocks"]:
             "news": news
         })
 
-# Get all stocks for diffUntilBuyPrice (symbol, price, diff, date)
+# Get all stocks for needToDropUntilBuyPrice (symbol, price, diff, date)
 diff_to_buy = [
     {
         "symbol": s["symbol"],
@@ -56,10 +56,10 @@ with open("email.json", "r") as f:
     email_data = json.load(f)
 
 email_data["content"]["dailyPriceChange"] = filtered
-email_data["content"]["diffUntilBuyPrice"] = diff_to_buy
+email_data["content"]["needToDropUntilBuyPrice"] = diff_to_buy
 
 with open("email.json", "w") as f:
     json.dump(email_data, f, indent=2)
 
 print(f"Added {len(filtered)} stocks to dailyPriceChange")
-print(f"Added {len(diff_to_buy)} stocks to diffUntilBuyPrice")
+print(f"Added {len(diff_to_buy)} stocks to needToDropUntilBuyPrice")

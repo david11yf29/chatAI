@@ -12,39 +12,39 @@
   "content": {
     "dailyPriceChange": [
       {
-        "symbol": "MU",
-        "name": "Micron Technology, Inc.",
-        "price": 362.75,
-        "changePercent": 7.76,
+        "symbol": "RMBS",
+        "name": "Rambus Inc.",
+        "price": 107.99,
+        "changePercent": 4.77,
         "date": "2026-01-16T16:00:00-05:00",
-        "news": "Micron\u2019s rally is being driven by booming demand and pricing for AI memory\u2014especially high\u2011bandwidth memory (HBM) used in Nvidia and AMD accelerators\u2014which has fueled sharp sales and earnings growth. The company says its AI memory supply is sold out through 2026 and it can meet only about 60% of near\u2011term demand, prompting capacity expansions via new plants and acquisitions. Recent results included fiscal 2025 revenue of $37.4 billion and adjusted EPS of $8.29, with Q1 revenue up 56.6% year over year to $13.6 billion and EPS of $4.78."
+        "news": "Rambus (RMBS) stock rose after the company reported better-than-forecast second-quarter financial results. The chipmaker announced earnings of 53 cents per share on sales of $172.2 million, representing year-over-year increases of 61% and 30%, respectively. The company's strong performance and optimistic outlook are attributed to accelerating demand for high-performance computing and AI infrastructure."
       },
       {
-        "symbol": "PLTR",
-        "name": "Palantir Technologies Inc.",
-        "price": 170.96,
-        "changePercent": -3.45,
+        "symbol": "BABA",
+        "name": "Alibaba Group Holding Limited",
+        "price": 165.4,
+        "changePercent": -3.24,
         "date": "2026-01-16T16:00:00-05:00",
-        "news": "Palantir\u2019s 3.45% drop appears tied to renewed valuation concerns and a broader rotation out of software/AI stocks; the company\u2019s shares are down about 17% from their recent high despite a massive multi-year run. Wall Street is split\u2014bulls cite strong AI-platform execution and results, while bears warn the premium valuation is hard to justify\u2014adding pressure to the stock."
+        "news": "Alibaba Group (BABA) stock slid 7.5% following its fiscal Q4 earnings release, as both adjusted earnings of 12.52 yuan per ADS and sales of 236.45 billion yuan ($32.8 billion) missed Wall Street estimates of 12.56 yuan and 239.6 billion yuan, respectively. Despite year-over-year growth in earnings (23%) and revenue (7%), the shortfall triggered the sell-off, with shares testing a key technical level before partial recovery. Cloud revenue grew 18% to 30.1 billion yuan, boosted by triple-digit AI product gains for the seventh straight quarter, though broader economic concerns in China persist."
       }
     ],
-    "diffUntilBuyPrice": [
-      {
-        "symbol": "MU",
-        "price": 362.75,
-        "diff": -90.9,
-        "date": "2026-01-16T16:00:00-05:00"
-      },
+    "needToDropUntilBuyPrice": [
       {
         "symbol": "AAOI",
         "price": 37.04,
-        "diff": -5.51,
+        "diff": -10.8,
         "date": "2026-01-16T16:00:00-05:00"
       },
       {
-        "symbol": "PLTR",
-        "price": 170.96,
-        "diff": -59.05,
+        "symbol": "RMBS",
+        "price": 107.99,
+        "diff": -10.0,
+        "date": "2026-01-16T16:00:00-05:00"
+      },
+      {
+        "symbol": "BABA",
+        "price": 165.4,
+        "diff": -10.0,
         "date": "2026-01-16T16:00:00-05:00"
       }
     ]

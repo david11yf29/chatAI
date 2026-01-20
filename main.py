@@ -500,7 +500,7 @@ Return ONLY the final summary. No planning text, no "I will", no "Let me" - just
 
 @app.post("/api/update-email")
 async def update_email():
-    """Update email.json with dailyPriceChange and diffUntilBuyPrice from stockapp.json."""
+    """Update email.json with dailyPriceChange and needToDropUntilBuyPrice from stockapp.json."""
     # Read stockapp.json
     with open("stockapp.json", "r") as f:
         stock_data = json.load(f)
@@ -520,7 +520,7 @@ async def update_email():
                 "news": news
             })
 
-    # Get all stocks for diffUntilBuyPrice (symbol, price, diff, date)
+    # Get all stocks for needToDropUntilBuyPrice (symbol, price, diff, date)
     diff_to_buy = [
         {
             "symbol": s["symbol"],
@@ -536,7 +536,7 @@ async def update_email():
         email_data = json.load(f)
 
     email_data["content"]["dailyPriceChange"] = filtered
-    email_data["content"]["diffUntilBuyPrice"] = diff_to_buy
+    email_data["content"]["needToDropUntilBuyPrice"] = diff_to_buy
 
     with open("email.json", "w") as f:
         json.dump(email_data, f, indent=2)
@@ -544,7 +544,7 @@ async def update_email():
     return {
         "success": True,
         "dailyPriceChangeCount": len(filtered),
-        "diffUntilBuyPriceCount": len(diff_to_buy)
+        "needToDropUntilBuyPriceCount": len(diff_to_buy)
     }
 
 # ============================================================================
@@ -651,7 +651,7 @@ def generate_stock_card_html(stock: dict) -> str:
 
 
 def generate_diff_card_html(stock: dict) -> str:
-    """Generate HTML for a Diff to Buy Price stock card."""
+    """Generate HTML for a Need to Drop Until Buy Price stock card."""
     symbol = stock.get("symbol", "")
     price = stock.get("price", 0)
     diff = stock.get("diff", 0)
@@ -687,7 +687,7 @@ def generate_stock_email_html():
 
     content = email_config.get("content", {})
     daily_price_change = content.get("dailyPriceChange", [])
-    diff_to_buy_price = content.get("diffUntilBuyPrice", [])
+    diff_to_buy_price = content.get("needToDropUntilBuyPrice", [])
 
     # Generate Daily Price Change cards
     daily_change_cards = ""
@@ -703,7 +703,7 @@ def generate_stock_email_html():
             </tr>
         </table>'''
 
-    # Generate Diff to Buy Price cards
+    # Generate Need to Drop Until Buy Price cards
     diff_cards = ""
     if diff_to_buy_price:
         diff_cards = "".join(generate_diff_card_html(stock) for stock in diff_to_buy_price)
@@ -809,14 +809,14 @@ def generate_stock_email_html():
                         </td>
                     </tr>
 
-                    <!-- Diff to Buy Price Section -->
+                    <!-- Need to Drop Until Buy Price Section -->
                     <tr>
                         <td style="padding: 0 0 48px 0;">
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0071e3; border-radius: 8px; margin-bottom: 24px;">
                                 <tr>
                                     <td style="padding: 16px 20px;">
                                         <h2 style="margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 24px; font-weight: 600; color: #ffffff;">
-                                            Diff to Buy Price
+                                            Need to Drop Until Buy Price
                                         </h2>
                                         <p style="margin: 4px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 15px; color: rgba(255,255,255,0.8);">
                                             Distance from target buy prices
