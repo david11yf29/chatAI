@@ -1,3 +1,14 @@
+let currentStocks = [];
+
+function setLoading(isLoading) {
+    const overlay = document.getElementById('loading-overlay');
+    if (isLoading) {
+        overlay.classList.remove('hidden');
+    } else {
+        overlay.classList.add('hidden');
+    }
+}
+
 async function fetchStocks() {
     console.log('Fetching stocks...');
     try {
@@ -6,7 +17,8 @@ async function fetchStocks() {
         const data = await response.json();
         console.log('Data received:', data);
         if (data.stocks && data.stocks.length > 0) {
-            renderStocks(data.stocks);
+            currentStocks = data.stocks;
+            renderStocks(currentStocks);
         } else {
             console.error('No stocks in response');
         }
@@ -15,18 +27,227 @@ async function fetchStocks() {
     }
 }
 
+async function removeStock(symbol) {
+    console.log('Removing stock:', symbol);
+    try {
+        const response = await fetch(`/api/stocks/${encodeURIComponent(symbol)}`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        console.log('Remove response:', data);
+        if (data.success) {
+            await fetchStocks();
+        }
+    } catch (error) {
+        console.error('Error removing stock:', error);
+    }
+}
+
+function addStock() {
+    const newStock = {
+        symbol: "",
+        name: "New Stock",
+        price: 0,
+        changePercent: 0,
+        date: "",
+        buyPrice: 0,
+        diff: 0
+    };
+    currentStocks.push(newStock);
+    renderStocks(currentStocks);
+
+    // Focus the new symbol input for immediate editing
+    const symbolInputs = document.querySelectorAll('.symbol-input');
+    const lastInput = symbolInputs[symbolInputs.length - 1];
+    if (lastInput) {
+        lastInput.focus();
+    }
+}
+
 function renderStocks(stocks) {
     const tbody = document.getElementById('stock-body');
     tbody.innerHTML = '';
 
-    stocks.forEach(stock => {
+    stocks.forEach((stock, index) => {
         const row = document.createElement('tr');
+
+        // Format change percentage with sign and color
+        let changeDisplay = '-';
+        let changeClass = '';
+        if (stock.changePercent !== null && stock.changePercent !== undefined) {
+            const sign = stock.changePercent >= 0 ? '+' : '';
+            changeDisplay = `${sign}${stock.changePercent.toFixed(2)}%`;
+            changeClass = stock.changePercent >= 0 ? 'positive-change' : 'negative-change';
+        }
+
         row.innerHTML = `
-            <td>${stock.symbol}</td>
+            <td class="remove-cell"><button class="remove-btn" data-symbol="${stock.symbol}">Remove</button></td>
+            <td><input type="text" class="editable-input symbol-input" data-index="${index}" value="${stock.symbol}"></td>
             <td>$${stock.price.toFixed(2)}</td>
+            <td class="${changeClass}">${changeDisplay}</td>
+            <td><input type="number" class="editable-input buy-price-input" data-index="${index}" value="${stock.buyPrice.toFixed(2)}" step="0.01"></td>
         `;
         tbody.appendChild(row);
     });
+
+    // Add event listeners to inputs
+    // Symbol input change handler - just store in memory (no API call)
+    // Name and price will be fetched when "Update" is clicked
+    document.querySelectorAll('.symbol-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+            const index = parseInt(e.target.dataset.index);
+            const newSymbol = e.target.value.toUpperCase().trim();
+            e.target.value = newSymbol;
+            currentStocks[index].symbol = newSymbol;
+        });
+    });
+
+    document.querySelectorAll('.buy-price-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+            const index = parseInt(e.target.dataset.index);
+            currentStocks[index].buyPrice = parseFloat(e.target.value) || 0;
+        });
+    });
+
+    // Remove button click handler
+    document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const symbol = e.target.dataset.symbol;
+            const index = parseInt(e.target.closest('tr').querySelector('.symbol-input').dataset.index);
+
+            // If symbol is empty (unsaved new row), just remove from local array
+            if (!symbol || symbol.trim() === '') {
+                currentStocks.splice(index, 1);
+                renderStocks(currentStocks);
+            } else {
+                removeStock(symbol);
+            }
+        });
+    });
 }
 
-document.addEventListener('DOMContentLoaded', fetchStocks);
+async function saveStocks() {
+    const updateBtn = document.getElementById('update-btn');
+    updateBtn.disabled = true;
+    updateBtn.textContent = 'Saving...';
+    setLoading(true);
+
+    console.log('Saving stocks...', currentStocks);
+
+    try {
+        const response = await fetch('/api/stocks', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ stocks: currentStocks })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Stocks saved successfully:', data);
+
+            // Re-fetch from source of truth to get updated prices
+            await fetchStocks();
+
+            setLoading(false);
+            updateBtn.textContent = 'Saved!';
+            setTimeout(() => {
+                updateBtn.textContent = 'Update';
+                updateBtn.disabled = false;
+            }, 1500);
+        } else {
+            throw new Error('Failed to save stocks');
+        }
+    } catch (error) {
+        console.error('Error saving stocks:', error);
+        setLoading(false);
+        updateBtn.textContent = 'Error!';
+        setTimeout(() => {
+            updateBtn.textContent = 'Update';
+            updateBtn.disabled = false;
+        }, 1500);
+    }
+}
+
+async function updateEmail() {
+    const updateEmailBtn = document.getElementById('update-email-btn');
+    updateEmailBtn.disabled = true;
+    updateEmailBtn.textContent = 'Updating...';
+    setLoading(true);
+
+    console.log('Updating email alerts...');
+
+    try {
+        const response = await fetch('/api/update-email', {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Email updated successfully:', data);
+
+            setLoading(false);
+            updateEmailBtn.textContent = 'Updated!';
+            setTimeout(() => {
+                updateEmailBtn.textContent = 'Update Email';
+                updateEmailBtn.disabled = false;
+            }, 1500);
+        } else {
+            throw new Error('Failed to update email');
+        }
+    } catch (error) {
+        console.error('Error updating email:', error);
+        setLoading(false);
+        updateEmailBtn.textContent = 'Error!';
+        setTimeout(() => {
+            updateEmailBtn.textContent = 'Update Email';
+            updateEmailBtn.disabled = false;
+        }, 1500);
+    }
+}
+
+async function sendEmail() {
+    const sendEmailBtn = document.getElementById('send-email-btn');
+    sendEmailBtn.disabled = true;
+    sendEmailBtn.textContent = 'Sending...';
+    setLoading(true);
+
+    console.log('Sending test email...');
+
+    try {
+        const response = await fetch('/api/send-test-email', {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Email sent successfully:', data);
+
+            setLoading(false);
+            sendEmailBtn.textContent = 'Sent!';
+            setTimeout(() => {
+                sendEmailBtn.textContent = 'Send Email';
+                sendEmailBtn.disabled = false;
+            }, 1500);
+        } else {
+            throw new Error('Failed to send email');
+        }
+    } catch (error) {
+        console.error('Error sending email:', error);
+        setLoading(false);
+        sendEmailBtn.textContent = 'Error!';
+        setTimeout(() => {
+            sendEmailBtn.textContent = 'Send Email';
+            sendEmailBtn.disabled = false;
+        }, 1500);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    fetchStocks();
+    document.getElementById('add-btn').addEventListener('click', addStock);
+    document.getElementById('update-btn').addEventListener('click', saveStocks);
+    document.getElementById('update-email-btn').addEventListener('click', updateEmail);
+    document.getElementById('send-email-btn').addEventListener('click', sendEmail);
+});

@@ -1,0 +1,52 @@
+{
+  "from": "onboarding@resend.dev",
+  "newsSearch": [
+    "https://www.investors.com/",
+    "https://seekingalpha.com/"
+  ],
+  "time": "2026-01-19T08:00:00+08:00",
+  "to": [
+    "david11yf29@gmail.com"
+  ],
+  "subject": "Stocker Tracker Report",
+  "content": {
+    "dailyPriceChange": [
+      {
+        "symbol": "RMBS",
+        "name": "Rambus Inc.",
+        "price": 107.99,
+        "changePercent": 4.77,
+        "date": "2026-01-16T16:00:00-05:00",
+        "news": "Rambus (RMBS) stock rose after the company reported better-than-forecast second-quarter financial results. The chipmaker announced earnings of 53 cents per share on sales of $172.2 million, representing year-over-year increases of 61% and 30%, respectively. The company's strong performance and optimistic outlook are attributed to accelerating demand for high-performance computing and AI infrastructure."
+      },
+      {
+        "symbol": "BABA",
+        "name": "Alibaba Group Holding Limited",
+        "price": 165.4,
+        "changePercent": -3.24,
+        "date": "2026-01-16T16:00:00-05:00",
+        "news": "Alibaba Group (BABA) stock slid 7.5% following its fiscal Q4 earnings release, as both adjusted earnings of 12.52 yuan per ADS and sales of 236.45 billion yuan ($32.8 billion) missed Wall Street estimates of 12.56 yuan and 239.6 billion yuan, respectively. Despite year-over-year growth in earnings (23%) and revenue (7%), the shortfall triggered the sell-off, with shares testing a key technical level before partial recovery. Cloud revenue grew 18% to 30.1 billion yuan, boosted by triple-digit AI product gains for the seventh straight quarter, though broader economic concerns in China persist."
+      }
+    ],
+    "needToDropUntilBuyPrice": [
+      {
+        "symbol": "AAOI",
+        "price": 37.04,
+        "diff": -10.8,
+        "date": "2026-01-16T16:00:00-05:00"
+      },
+      {
+        "symbol": "RMBS",
+        "price": 107.99,
+        "diff": -10.0,
+        "date": "2026-01-16T16:00:00-05:00"
+      },
+      {
+        "symbol": "BABA",
+        "price": 165.4,
+        "diff": -10.0,
+        "date": "2026-01-16T16:00:00-05:00"
+      }
+    ]
+  }
+}
