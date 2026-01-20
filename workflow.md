@@ -7,7 +7,7 @@
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
-> If the code and this document conflict, update this document to reflect the actual implementation.
+> If the code and this document conflict, let me know the conflict first, and after I solve the conflict, please update this document first due to this document is the source of truth before any implementation, and then you can start the actual implementation.
 
 ---
 
