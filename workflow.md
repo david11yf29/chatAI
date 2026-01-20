@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-20
+> - **Last Updated:** 2026-01-20 (changed yfinance period from 5d to 2d)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -121,7 +121,7 @@ This document describes the detailed workflow for each of the four main buttons 
       - Retrieves company info: `longName`, `shortName`, or symbol fallback
 
    9. **Get Historical Price Data**
-      - Fetches 5-day history: `ticker.history(period="5d")`
+      - Fetches 2-day history: `ticker.history(period="2d")` (sufficient for previous day's close)
       - Extracts last closing price from history
       - Gets the actual trade date
 
