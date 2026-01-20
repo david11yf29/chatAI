@@ -5,3 +5,4 @@ python-dotenv
 httpx
 beautifulsoup4
 yfinance
+apscheduler>=3.10.0

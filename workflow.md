@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-20 (added default buyPrice logic: if user doesn't input buyPrice, defaults to price * 0.9)
+> - **Last Updated:** 2026-01-20 (added scheduled task execution via APScheduler for Update Email and Send Email)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -474,6 +474,110 @@ This document describes the detailed workflow for each of the four main buttons 
 
 ---
 
+## Scheduled Task Execution
+
+In addition to manual button clicks, the "Update Email" and "Send Email" tasks can be triggered automatically at scheduled times using APScheduler.
+
+### Configuration File
+
+**File:** `schedule.json`
+
+**Structure:**
+```json
+{
+  "Update Email": {
+    "enable": true,
+    "trigger_time": "2026-01-16T18:30:00-05:00"
+  },
+  "Send Email": {
+    "enable": true,
+    "trigger_time": "2026-01-16T18:40:00-05:00"
+  }
+}
+```
+
+### Configuration Fields
+
+| Field | Description |
+|-------|-------------|
+| `enable` | Boolean - whether this task should be scheduled |
+| `trigger_time` | ISO 8601 datetime with timezone when the task should run |
+
+### Scheduler Implementation
+
+**Library:** APScheduler (AsyncIOScheduler)
+
+**File:** `main.py`
+
+**Key Functions:**
+- `setup_scheduled_tasks()` - Reads `schedule.json` and schedules enabled tasks
+- `scheduled_update_email()` - Wrapper that logs execution and advances schedule
+- `scheduled_send_email()` - Wrapper that logs execution
+- `_advance_scheduled_tasks()` - Disables tasks and advances trigger times by 1 day
+
+### Lifecycle Events
+
+1. **Application Startup (`startup_event`):**
+   - Calls `setup_scheduled_tasks()` to read schedule.json
+   - Starts the APScheduler with `scheduler.start()`
+
+2. **Application Shutdown (`shutdown_event`):**
+   - Stops the APScheduler with `scheduler.shutdown(wait=False)`
+
+### Workflow: Scheduled Task Execution
+
+1. **On Application Startup:**
+   - Read `schedule.json`
+   - For each task with `enable: true`:
+     - Parse `trigger_time`
+     - If trigger time is in the future, schedule the job
+     - If trigger time has passed, log warning and skip
+
+2. **When Scheduled Time Arrives:**
+   - APScheduler triggers the appropriate async function
+   - Logs "SCHEDULED TASK: [Task Name] - Starting"
+   - Calls the core function (`_perform_update_email()` or `_perform_send_email()`)
+   - Logs completion status
+
+3. **After Update Email Execution:**
+   - `_advance_scheduled_tasks()` is called (in `finally` block)
+   - Sets `enable: false` for both tasks
+   - Advances both `trigger_time` values by 1 day
+   - Writes updated schedule back to `schedule.json`
+
+### Edge Case Handling
+
+| Scenario | Behavior |
+|----------|----------|
+| `schedule.json` missing | Log warning, continue without scheduling |
+| `schedule.json` invalid JSON | Log error, continue without scheduling |
+| `trigger_time` in the past | Log warning, skip scheduling that task |
+| `enable: false` | Skip scheduling that task |
+| Task execution fails | Log error, still advance schedule |
+
+### Log Messages
+
+**Startup:**
+```
+Setting up scheduled tasks from schedule.json...
+Scheduled task 'Update Email' for 2026-01-16T18:30:00-05:00
+Scheduled task 'Send Email' for 2026-01-16T18:40:00-05:00
+APScheduler started
+```
+
+**Execution:**
+```
+============================================================
+SCHEDULED TASK: Update Email - Starting
+============================================================
+SCHEDULED TASK: Update Email - Completed successfully: {...}
+Advanced 'Update Email' trigger time to 2026-01-17T18:30:00-05:00
+Advanced 'Send Email' trigger time to 2026-01-17T18:40:00-05:00
+Schedule updated: both tasks disabled and trigger times advanced by 1 day
+```
+
+---
+
 ## Summary
 
 ### Data Flow Overview
@@ -488,6 +592,7 @@ This document describes the detailed workflow for each of the four main buttons 
 ### Data Files
 - **stockapp.json** - Source of truth for stock portfolio
 - **email.json** - Email configuration and generated content
+- **schedule.json** - Scheduled task configuration (trigger times and enable flags)
 
 ### Environment Variables Required
 - `SUPER_MIND_API_KEY` - For AI-powered news generation
