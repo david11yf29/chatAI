@@ -332,7 +332,7 @@ async def update_stocks(request: StocksUpdateRequest):
                 stock_dict["name"] = info.get("longName") or info.get("shortName") or symbol
 
                 # Get last closed price and calculate percentage change
-                history = ticker.history(period="5d")
+                history = ticker.history(period="2d")
                 if not history.empty:
                     stock_dict["price"] = round(float(history['Close'].iloc[-1]), 2)
                     # Get the actual date of the closed price from yfinance

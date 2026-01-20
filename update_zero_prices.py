@@ -12,7 +12,7 @@ for stock in data["stocks"]:
         symbol = stock["symbol"]
         try:
             ticker = yf.Ticker(symbol)
-            history = ticker.history(period="5d")
+            history = ticker.history(period="2d")
             if not history.empty:
                 stock["price"] = round(float(history['Close'].iloc[-1]), 2)
                 # Get the actual date of the closed price from yfinance
