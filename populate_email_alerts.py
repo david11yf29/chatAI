@@ -36,15 +36,17 @@ for s in stock_data["stocks"]:
             "name": s["name"],
             "price": s["price"],
             "changePercent": s["changePercent"],
+            "date": s.get("date", ""),
             "news": news
         })
 
-# Get all stocks for diffUntilBuyPrice (symbol, price, diff)
+# Get all stocks for diffUntilBuyPrice (symbol, price, diff, date)
 diff_to_buy = [
     {
         "symbol": s["symbol"],
         "price": s["price"],
-        "diff": s["diff"]
+        "diff": s.get("diff", 0),
+        "date": s.get("date", "")
     }
     for s in stock_data["stocks"]
 ]

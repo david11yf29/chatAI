@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-20 (renamed diffToBuyPrice to diffUntilBuyPrice, always fetch fresh prices on Update, changed yfinance period from 5d to 2d)
+> - **Last Updated:** 2026-01-20 (date format now includes market close time as ISO 8601 with timezone, renamed diffToBuyPrice to diffUntilBuyPrice, always fetch fresh prices on Update, changed yfinance period from 5d to 2d)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -121,7 +121,7 @@ This document describes the detailed workflow for each of the four main buttons 
    9. **Get Historical Price Data**
       - Fetches 2-day history: `ticker.history(period="2d")` (sufficient for previous day's close)
       - Extracts last closing price from history
-      - Gets the actual trade date
+      - Gets the market close time as ISO 8601 datetime with timezone (e.g., "2026-01-16T16:00:00-05:00")
 
    10. **Calculate Daily Change Percent**
        - Compares current close vs previous close
@@ -273,18 +273,19 @@ This document describes the detailed workflow for each of the four main buttons 
 
 9. **Collect All Stocks for Diff Section**
    - Creates array of ALL stocks (not just those with price changes)
-   - Includes distance from buy price for each:
+   - Includes distance from buy price and market close time for each:
      ```python
      {
          "symbol": s["symbol"],
          "price": s["price"],
-         "diff": s.get("diff", 0)
+         "diff": s.get("diff", 0),
+         "date": s.get("date", "")
      }
      ```
 
 10. **Update email.json**
-    - **dailyPriceChange:** Array of stocks with >3% change + AI-generated news
-    - **diffUntilBuyPrice:** All stocks with buy price comparison
+    - **dailyPriceChange:** Array of stocks with >3% change + AI-generated news + date
+    - **diffUntilBuyPrice:** All stocks with buy price comparison + date
 
 11. **Return Response**
     - Returns JSON with counts:

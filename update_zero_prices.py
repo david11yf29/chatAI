@@ -1,6 +1,24 @@
 import yfinance as yf
 import json
 from datetime import datetime
+from zoneinfo import ZoneInfo
+
+
+def format_market_close_time(trading_date) -> str:
+    """Convert trading date to market close time in Eastern Time.
+
+    US stock market closes at 4:00 PM Eastern Time.
+
+    Args:
+        trading_date: The trading date from yfinance (pandas Timestamp or datetime)
+
+    Returns:
+        ISO 8601 formatted string like "2026-01-16T16:00:00-05:00"
+    """
+    trade_date = trading_date.date() if hasattr(trading_date, 'date') else trading_date
+    eastern = ZoneInfo("America/New_York")
+    market_close = datetime(trade_date.year, trade_date.month, trade_date.day, 16, 0, 0, tzinfo=eastern)
+    return market_close.isoformat()
 
 # Read stockapp.json
 with open("stockapp.json", "r") as f:
@@ -15,8 +33,9 @@ for stock in data["stocks"]:
             history = ticker.history(period="2d")
             if not history.empty:
                 stock["price"] = round(float(history['Close'].iloc[-1]), 2)
-                # Get the actual date of the closed price from yfinance
-                price_date = history.index[-1].strftime("%Y-%m-%d")
+                # Get the actual market close time in Eastern Time
+                trading_date = history.index[-1]
+                price_date = format_market_close_time(trading_date)
                 stock["date"] = price_date
 
                 # Calculate percentage change from previous day
