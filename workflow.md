@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-20 (added scheduled task execution via APScheduler for Update Email and Send Email)
+> - **Last Updated:** 2026-01-22 (added scheduled task execution for Update stock prices)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -476,7 +476,7 @@ This document describes the detailed workflow for each of the four main buttons 
 
 ## Scheduled Task Execution
 
-In addition to manual button clicks, the "Update Email" and "Send Email" tasks can be triggered automatically at scheduled times using APScheduler.
+In addition to manual button clicks, the "Update", "Update Email", and "Send Email" tasks can be triggered automatically at scheduled times using APScheduler.
 
 ### Configuration File
 
@@ -485,6 +485,10 @@ In addition to manual button clicks, the "Update Email" and "Send Email" tasks c
 **Structure:**
 ```json
 {
+  "Update": {
+    "enable": true,
+    "trigger_time": "2026-01-16T18:00:00-05:00"
+  },
   "Update Email": {
     "enable": true,
     "trigger_time": "2026-01-16T18:30:00-05:00"
@@ -511,9 +515,10 @@ In addition to manual button clicks, the "Update Email" and "Send Email" tasks c
 
 **Key Functions:**
 - `setup_scheduled_tasks()` - Reads `schedule.json` and schedules enabled tasks
-- `scheduled_update_email()` - Wrapper that logs execution and advances schedule
-- `scheduled_send_email()` - Wrapper that logs execution
-- `_advance_scheduled_tasks()` - Disables tasks and advances trigger times by 1 day
+- `scheduled_update_stocks()` - Wrapper that logs execution and advances schedule for Update task
+- `scheduled_update_email()` - Wrapper that logs execution for Update Email task
+- `scheduled_send_email()` - Wrapper that logs execution for Send Email task
+- `_advance_scheduled_tasks()` - Disables all tasks and advances trigger times by 1 day
 
 ### Lifecycle Events
 
@@ -536,13 +541,13 @@ In addition to manual button clicks, the "Update Email" and "Send Email" tasks c
 2. **When Scheduled Time Arrives:**
    - APScheduler triggers the appropriate async function
    - Logs "SCHEDULED TASK: [Task Name] - Starting"
-   - Calls the core function (`_perform_update_email()` or `_perform_send_email()`)
+   - Calls the core function (`_perform_update_stocks()`, `_perform_update_email()`, or `_perform_send_email()`)
    - Logs completion status
 
-3. **After Update Email Execution:**
-   - `_advance_scheduled_tasks()` is called (in `finally` block)
-   - Sets `enable: false` for both tasks
-   - Advances both `trigger_time` values by 1 day
+3. **After Update Execution:**
+   - `_advance_scheduled_tasks()` is called (in `finally` block of `scheduled_update_stocks()`)
+   - Sets `enable: false` for all tasks (Update, Update Email, Send Email)
+   - Advances all `trigger_time` values by 1 day
    - Writes updated schedule back to `schedule.json`
 
 ### Edge Case Handling
@@ -560,6 +565,7 @@ In addition to manual button clicks, the "Update Email" and "Send Email" tasks c
 **Startup:**
 ```
 Setting up scheduled tasks from schedule.json...
+Scheduled task 'Update' for 2026-01-16T18:00:00-05:00
 Scheduled task 'Update Email' for 2026-01-16T18:30:00-05:00
 Scheduled task 'Send Email' for 2026-01-16T18:40:00-05:00
 APScheduler started
@@ -568,12 +574,13 @@ APScheduler started
 **Execution:**
 ```
 ============================================================
-SCHEDULED TASK: Update Email - Starting
+SCHEDULED TASK: Update - Starting
 ============================================================
-SCHEDULED TASK: Update Email - Completed successfully: {...}
+SCHEDULED TASK: Update - Completed successfully: {...}
+Advanced 'Update' trigger time to 2026-01-17T18:00:00-05:00
 Advanced 'Update Email' trigger time to 2026-01-17T18:30:00-05:00
 Advanced 'Send Email' trigger time to 2026-01-17T18:40:00-05:00
-Schedule updated: both tasks disabled and trigger times advanced by 1 day
+Schedule updated: all tasks disabled and trigger times advanced by 1 day
 ```
 
 ---
@@ -582,12 +589,12 @@ Schedule updated: both tasks disabled and trigger times advanced by 1 day
 
 ### Data Flow Overview
 
-| Button | Action | API Endpoint | DB Read | DB Write | External Services |
-|--------|--------|--------------|---------|----------|-------------------|
-| **Add** | Add empty row | None | None | None | None |
-| **Update** | Save & fetch prices | `PUT /api/stocks`, `GET /api/stocks` | stockapp.json | stockapp.json | yfinance |
-| **Update Email** | Generate news | `POST /api/update-email` | stockapp.json, email.json | email.json | OpenAI, Search API, News sites |
-| **Send Email** | Send email | `POST /api/send-test-email` | email.json | None | Resend |
+| Button | Action | API Endpoint | DB Read | DB Write | External Services | Schedulable |
+|--------|--------|--------------|---------|----------|-------------------|-------------|
+| **Add** | Add empty row | None | None | None | None | No |
+| **Update** | Save & fetch prices | `PUT /api/stocks`, `GET /api/stocks` | stockapp.json | stockapp.json | yfinance | Yes |
+| **Update Email** | Generate news | `POST /api/update-email` | stockapp.json, email.json | email.json | OpenAI, Search API, News sites | Yes |
+| **Send Email** | Send email | `POST /api/send-test-email` | email.json | None | Resend | Yes |
 
 ### Data Files
 - **stockapp.json** - Source of truth for stock portfolio

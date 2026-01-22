@@ -401,6 +401,85 @@ async def update_stocks(request: StocksUpdateRequest):
 
     return {"message": "Stocks updated successfully", "stocks": updated_stocks}
 
+
+def _perform_update_stocks() -> dict:
+    """Core logic to update stock prices from yfinance.
+
+    Reads current stocks from stockapp.json, fetches fresh prices,
+    calculates changePercent and diff values, and writes back.
+
+    Returns:
+        dict: Result with success status and count of updated stocks
+    """
+    # Read existing data
+    with open("stockapp.json", "r") as f:
+        existing_data = json.load(f)
+
+    existing_stocks = existing_data.get("stocks", [])
+    updated_stocks = []
+    updated_count = 0
+
+    for stock in existing_stocks:
+        stock_dict = dict(stock)
+        symbol = stock.get("symbol", "").upper().strip()
+
+        if symbol:
+            logger.info(f"[_perform_update_stocks] Fetching fresh data for {symbol}")
+            try:
+                ticker = yf.Ticker(symbol)
+                info = ticker.info
+                stock_dict["name"] = info.get("longName") or info.get("shortName") or symbol
+
+                # Get last closed price and calculate percentage change
+                history = ticker.history(period="2d")
+                if not history.empty:
+                    stock_dict["price"] = round(float(history['Close'].iloc[-1]), 2)
+                    trading_date = history.index[-1]
+                    price_date = format_market_close_time(trading_date)
+                    stock_dict["date"] = price_date
+
+                    # Calculate percentage change from previous day
+                    if len(history) >= 2:
+                        current_close = float(history['Close'].iloc[-1])
+                        previous_close = float(history['Close'].iloc[-2])
+                        change_percent = ((current_close - previous_close) / previous_close) * 100
+                        stock_dict["changePercent"] = round(change_percent, 2)
+                    else:
+                        stock_dict["changePercent"] = None
+
+                    updated_count += 1
+                    logger.info(f"[_perform_update_stocks] Updated {symbol}: ${stock_dict['price']} (change: {stock_dict.get('changePercent')}%)")
+            except Exception as e:
+                logger.error(f"[_perform_update_stocks] yfinance error for {symbol}: {e}")
+
+        # Calculate diff: percentage difference from buy price
+        price = stock_dict.get("price", 0)
+        buy_price = stock_dict.get("buyPrice", 0)
+
+        if buy_price == 0 and price > 0:
+            buy_price = round(price * 0.9, 2)
+            stock_dict["buyPrice"] = buy_price
+
+        if price > 0:
+            diff = round(((buy_price - price) / price) * 100, 2)
+            stock_dict["diff"] = diff
+
+        updated_stocks.append(stock_dict)
+
+    # Write updated data back to stockapp.json
+    existing_data["stocks"] = updated_stocks
+    with open("stockapp.json", "w") as f:
+        json.dump(existing_data, f, indent=2)
+
+    logger.info(f"[_perform_update_stocks] Completed: {updated_count} stocks updated")
+
+    return {
+        "success": True,
+        "updated_count": updated_count,
+        "total_stocks": len(updated_stocks)
+    }
+
+
 @app.delete("/api/stocks/{symbol}")
 async def delete_stock(symbol: str):
     """Remove a stock from the portfolio by symbol."""
@@ -1141,11 +1220,11 @@ async def chat(chat_request: ChatRequest, request: Request):
 # ============================================================================
 
 def _advance_scheduled_tasks():
-    """Advance trigger times by 1 day for both tasks and reschedule the jobs.
+    """Advance trigger times by 1 day for all tasks and reschedule the jobs.
 
     After a scheduled task runs successfully, this function:
-    1. Sets both tasks to enable: false
-    2. Advances both trigger_time values by 1 day
+    1. Sets all tasks to enable: false
+    2. Advances all trigger_time values by 1 day
     3. Reschedules the jobs for the new times
     """
     try:
@@ -1153,8 +1232,8 @@ def _advance_scheduled_tasks():
         with open("schedule.json", "r") as f:
             schedule_data = json.load(f)
 
-        # Process both tasks
-        for task_name in ["Update Email", "Send Email"]:
+        # Process all tasks
+        for task_name in ["Update", "Update Email", "Send Email"]:
             if task_name in schedule_data:
                 task = schedule_data[task_name]
                 # Set enable to false
@@ -1171,7 +1250,7 @@ def _advance_scheduled_tasks():
         with open("schedule.json", "w") as f:
             json.dump(schedule_data, f, indent=2)
 
-        logger.info("Schedule updated: both tasks disabled and trigger times advanced by 1 day")
+        logger.info("Schedule updated: all tasks disabled and trigger times advanced by 1 day")
 
     except Exception as e:
         logger.error(f"Error advancing scheduled tasks: {e}")
@@ -1208,6 +1287,23 @@ async def scheduled_send_email():
         raise
 
 
+async def scheduled_update_stocks():
+    """Wrapper for scheduled Update (stock prices) execution with logging."""
+    logger.info("=" * 60)
+    logger.info("SCHEDULED TASK: Update - Starting")
+    logger.info("=" * 60)
+
+    try:
+        result = _perform_update_stocks()
+        logger.info(f"SCHEDULED TASK: Update - Completed successfully: {result}")
+    except Exception as e:
+        logger.error(f"SCHEDULED TASK: Update - Failed with error: {e}")
+        raise
+    finally:
+        # Advance schedule after execution (both success and failure)
+        _advance_scheduled_tasks()
+
+
 def setup_scheduled_tasks():
     """Read schedule.json and schedule jobs for enabled tasks."""
     logger.info("Setting up scheduled tasks from schedule.json...")
@@ -1223,6 +1319,25 @@ def setup_scheduled_tasks():
         return
 
     now = datetime.now(ZoneInfo("America/New_York"))
+
+    # Process Update (stock prices) task
+    update_config = schedule_data.get("Update", {})
+    if update_config.get("enable", False):
+        trigger_time_str = update_config.get("trigger_time")
+        if trigger_time_str:
+            trigger_time = datetime.fromisoformat(trigger_time_str)
+            if trigger_time > now:
+                scheduler.add_job(
+                    scheduled_update_stocks,
+                    trigger=DateTrigger(run_date=trigger_time),
+                    id="update_stocks_scheduled",
+                    replace_existing=True
+                )
+                logger.info(f"Scheduled task 'Update' for {trigger_time_str}")
+            else:
+                logger.warning(f"Skipping 'Update' - trigger time {trigger_time_str} has already passed")
+    else:
+        logger.info("'Update' task is disabled in schedule.json")
 
     # Process Update Email task
     update_email_config = schedule_data.get("Update Email", {})
