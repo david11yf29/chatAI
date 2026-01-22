@@ -6,49 +6,49 @@
   "search": "yahoo finance",
   "stocks": [
     {
+      "symbol": "MU",
+      "name": "Micron Technology, Inc.",
+      "price": 389.11,
+      "changePercent": 6.61,
+      "date": "2026-01-22T05:00:00+08:00",
+      "buyPrice": 350.2,
+      "diff": -10.0
+    },
+    {
+      "symbol": "SNDK",
+      "name": "Sandisk Corporation",
+      "price": 501.29,
+      "changePercent": 10.63,
+      "date": "2026-01-22T05:00:00+08:00",
+      "buyPrice": 451.16,
+      "diff": -10.0
+    },
+    {
+      "symbol": "NVDA",
+      "name": "NVIDIA Corporation",
+      "price": 183.32,
+      "changePercent": 2.95,
+      "date": "2026-01-22T05:00:00+08:00",
+      "buyPrice": 164.99,
+      "diff": -10.0
+    },
+    {
       "symbol": "AAOI",
       "name": "Applied Optoelectronics, Inc.",
-      "price": 39.26,
-      "changePercent": 5.99,
-      "date": "2026-01-21T05:00:00+08:00",
-      "buyPrice": 33.0,
-      "diff": -15.94
+      "price": 38.38,
+      "changePercent": -2.24,
+      "date": "2026-01-22T05:00:00+08:00",
+      "buyPrice": 34.54,
+      "diff": -10.01
     },
     {
       "symbol": "MSFT",
       "name": "Microsoft Corporation",
-      "price": 454.52,
-      "changePercent": -1.16,
-      "date": "2026-01-21T05:00:00+08:00",
-      "buyPrice": 448.25,
-      "diff": -1.38
-    },
-    {
-      "symbol": "META",
-      "name": "Meta Platforms, Inc.",
-      "price": 604.12,
-      "changePercent": -2.6,
-      "date": "2026-01-21T05:00:00+08:00",
-      "buyPrice": 580.0,
-      "diff": -3.99
-    },
-    {
-      "symbol": "AMZN",
-      "name": "Amazon.com, Inc.",
-      "price": 231.0,
-      "changePercent": -3.4,
-      "date": "2026-01-21T05:00:00+08:00",
-      "buyPrice": 225.0,
-      "diff": -2.6
-    },
-    {
-      "symbol": "TSLA",
-      "name": "Tesla, Inc.",
-      "price": 419.25,
-      "changePercent": -4.17,
-      "date": "2026-01-21T05:00:00+08:00",
-      "buyPrice": 382.0,
-      "diff": -8.88
+      "price": 444.11,
+      "changePercent": -2.29,
+      "date": "2026-01-22T05:00:00+08:00",
+      "buyPrice": 399.7,
+      "diff": -10.0
     }
   ]
 }
