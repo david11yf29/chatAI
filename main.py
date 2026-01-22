@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
+import asyncio
 from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -55,6 +56,29 @@ app = FastAPI()
 
 # Global scheduler for scheduled tasks
 scheduler = AsyncIOScheduler()
+
+# SSE (Server-Sent Events) client management
+sse_clients: set[asyncio.Queue] = set()
+
+async def broadcast_sse_event(event_type: str, data: dict = None):
+    """Broadcast an event to all connected SSE clients."""
+    import json
+    event_data = json.dumps({"type": event_type, "data": data or {}})
+    message = f"event: {event_type}\ndata: {event_data}\n\n"
+
+    # Send to all connected clients
+    disconnected = set()
+    for client_queue in sse_clients:
+        try:
+            await client_queue.put(message)
+        except Exception:
+            disconnected.add(client_queue)
+
+    # Clean up disconnected clients
+    for client_queue in disconnected:
+        sse_clients.discard(client_queue)
+
+    logger.info(f"Broadcast SSE event '{event_type}' to {len(sse_clients)} clients")
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -313,22 +337,24 @@ async def get_stock_info(symbol: str):
 
 
 def format_market_close_time(trading_date) -> str:
-    """Convert trading date to market close time in Eastern Time.
+    """Convert trading date to market close time in Taiwan Time.
 
-    US stock market closes at 4:00 PM Eastern Time.
+    US stock market closes at 4:00 PM Eastern Time, which is 5:00 AM next day in Taiwan.
 
     Args:
         trading_date: The trading date from yfinance (pandas Timestamp or datetime)
 
     Returns:
-        ISO 8601 formatted string like "2026-01-16T16:00:00-05:00"
+        ISO 8601 formatted string like "2026-01-17T05:00:00+08:00"
     """
     # Get the trading date as a date object
     trade_date = trading_date.date() if hasattr(trading_date, 'date') else trading_date
 
-    # Market closes at 4:00 PM Eastern Time
-    eastern = ZoneInfo("America/New_York")
-    market_close = datetime(trade_date.year, trade_date.month, trade_date.day, 16, 0, 0, tzinfo=eastern)
+    # Market closes at 4:00 PM Eastern Time = 5:00 AM next day Taiwan Time
+    taiwan = ZoneInfo("Asia/Taipei")
+    # Add one day to get the next day, set time to 5:00 AM
+    next_day = trade_date + timedelta(days=1)
+    market_close = datetime(next_day.year, next_day.month, next_day.day, 5, 0, 0, tzinfo=taiwan)
 
     # Format as ISO 8601 with timezone offset
     return market_close.isoformat()
@@ -336,19 +362,56 @@ def format_market_close_time(trading_date) -> str:
 
 @app.put("/api/stocks")
 async def update_stocks(request: StocksUpdateRequest):
-    """Update stocks - fetches prices for changed symbols and persists to stockapp.json (source of truth)."""
+    """Update stocks - saves symbol/buyPrice first, then fetches prices from yfinance.
+
+    Two-phase save approach:
+    1. Save symbol/buyPrice to stockapp.json FIRST (preserves user edits even if yfinance fails)
+    2. Fetch prices from yfinance
+    3. Final save with updated prices
+    """
     # Read existing data to preserve the search field and _metadata
     with open("stockapp.json", "r") as f:
         existing_data = json.load(f)
 
     existing_stocks = existing_data.get("stocks", [])
-    updated_stocks = []
 
+    # STEP 1: Save symbol/buyPrice FIRST (before yfinance calls)
+    # This ensures user edits are persisted even if yfinance fails
+    preliminary_stocks = []
     for i, stock in enumerate(request.stocks):
         stock_dict = stock.model_dump()
         symbol = stock.symbol.upper().strip()
+        stock_dict["symbol"] = symbol
 
-        # Always fetch fresh prices for stocks with valid symbols
+        # Preserve existing price data if symbol unchanged
+        if i < len(existing_stocks) and existing_stocks[i].get("symbol", "").upper() == symbol:
+            stock_dict["price"] = existing_stocks[i].get("price", 0)
+            stock_dict["changePercent"] = existing_stocks[i].get("changePercent", 0)
+            stock_dict["date"] = existing_stocks[i].get("date", "")
+            stock_dict["name"] = existing_stocks[i].get("name", symbol)
+            stock_dict["diff"] = existing_stocks[i].get("diff", 0)
+        else:
+            # Symbol changed or new stock - set defaults
+            stock_dict["price"] = stock_dict.get("price", 0)
+            stock_dict["changePercent"] = stock_dict.get("changePercent", 0)
+            stock_dict["date"] = stock_dict.get("date", "")
+            stock_dict["name"] = stock_dict.get("name", symbol)
+            stock_dict["diff"] = stock_dict.get("diff", 0)
+
+        preliminary_stocks.append(stock_dict)
+
+    # Write preliminary save (symbol/buyPrice persisted)
+    existing_data["stocks"] = preliminary_stocks
+    with open("stockapp.json", "w") as f:
+        json.dump(existing_data, f, indent=2)
+    logger.info(f"Preliminary save completed: {len(preliminary_stocks)} stocks saved to stockapp.json")
+
+    # STEP 2: Fetch yfinance data for each stock
+    updated_stocks = []
+    for stock_dict in preliminary_stocks:
+        symbol = stock_dict["symbol"]
+
+        # Fetch fresh prices for stocks with valid symbols
         if symbol:
             logger.info(f"Fetching fresh data for {symbol}")
             try:
@@ -394,12 +457,152 @@ async def update_stocks(request: StocksUpdateRequest):
 
         updated_stocks.append(stock_dict)
 
-    # Update stockapp.json (SOURCE OF TRUTH)
+    # STEP 3: Final save with updated prices
+    existing_data["stocks"] = updated_stocks
+    with open("stockapp.json", "w") as f:
+        json.dump(existing_data, f, indent=2)
+    logger.info(f"Final save completed: {len(updated_stocks)} stocks with prices saved to stockapp.json")
+
+    return {"message": "Stocks updated successfully", "stocks": updated_stocks}
+
+
+@app.patch("/api/stocks/autosave")
+async def autosave_stocks(request: StocksUpdateRequest):
+    """Auto-save stock Symbol and Buy Price changes WITHOUT fetching prices.
+
+    This endpoint is called automatically when user edits fields in the frontend.
+    It preserves existing price data while updating only symbol and buyPrice.
+    The scheduled 'Update' task will later fetch fresh prices for these stocks.
+    """
+    logger.info(f"[autosave_stocks] Auto-saving {len(request.stocks)} stocks")
+
+    # Read existing data to preserve metadata and other fields
+    with open("stockapp.json", "r") as f:
+        existing_data = json.load(f)
+
+    # Build a map of existing stocks by index for preserving price data
+    existing_stocks = existing_data.get("stocks", [])
+
+    updated_stocks = []
+    for i, stock in enumerate(request.stocks):
+        stock_dict = stock.model_dump()
+        symbol = stock.symbol.upper().strip()
+        stock_dict["symbol"] = symbol
+
+        # Preserve existing price data if available (from previous updates)
+        if i < len(existing_stocks):
+            existing = existing_stocks[i]
+            # Keep price, changePercent, date, name if not provided or if symbol unchanged
+            if existing.get("symbol", "").upper() == symbol:
+                stock_dict["price"] = existing.get("price", 0)
+                stock_dict["changePercent"] = existing.get("changePercent", 0)
+                stock_dict["date"] = existing.get("date", "")
+                stock_dict["name"] = existing.get("name", symbol)
+            else:
+                # Symbol changed - reset price data, will be fetched by scheduled task
+                stock_dict["price"] = stock_dict.get("price", 0)
+                stock_dict["changePercent"] = stock_dict.get("changePercent", 0)
+                stock_dict["date"] = stock_dict.get("date", "")
+                stock_dict["name"] = symbol
+
+        # Calculate diff based on current price and buyPrice
+        price = stock_dict.get("price", 0)
+        buy_price = stock_dict.get("buyPrice", 0)
+        if price > 0:
+            diff = round(((buy_price - price) / price) * 100, 2)
+            stock_dict["diff"] = diff
+        else:
+            stock_dict["diff"] = 0
+
+        updated_stocks.append(stock_dict)
+        logger.info(f"[autosave_stocks] Saved {symbol} with buyPrice={stock_dict.get('buyPrice')}")
+
+    # Write to stockapp.json (SOURCE OF TRUTH)
     existing_data["stocks"] = updated_stocks
     with open("stockapp.json", "w") as f:
         json.dump(existing_data, f, indent=2)
 
-    return {"message": "Stocks updated successfully", "stocks": updated_stocks}
+    logger.info(f"[autosave_stocks] Auto-save completed for {len(updated_stocks)} stocks")
+    return {"message": "Stocks auto-saved successfully", "stocks": updated_stocks}
+
+
+def _perform_update_stocks() -> dict:
+    """Core logic to update stock prices from yfinance.
+
+    Reads current stocks from stockapp.json, fetches fresh prices,
+    calculates changePercent and diff values, and writes back.
+
+    Returns:
+        dict: Result with success status and count of updated stocks
+    """
+    # Read existing data
+    with open("stockapp.json", "r") as f:
+        existing_data = json.load(f)
+
+    existing_stocks = existing_data.get("stocks", [])
+    updated_stocks = []
+    updated_count = 0
+
+    for stock in existing_stocks:
+        stock_dict = dict(stock)
+        symbol = stock.get("symbol", "").upper().strip()
+
+        if symbol:
+            logger.info(f"[_perform_update_stocks] Fetching fresh data for {symbol}")
+            try:
+                ticker = yf.Ticker(symbol)
+                info = ticker.info
+                stock_dict["name"] = info.get("longName") or info.get("shortName") or symbol
+
+                # Get last closed price and calculate percentage change
+                history = ticker.history(period="2d")
+                if not history.empty:
+                    stock_dict["price"] = round(float(history['Close'].iloc[-1]), 2)
+                    trading_date = history.index[-1]
+                    price_date = format_market_close_time(trading_date)
+                    stock_dict["date"] = price_date
+
+                    # Calculate percentage change from previous day
+                    if len(history) >= 2:
+                        current_close = float(history['Close'].iloc[-1])
+                        previous_close = float(history['Close'].iloc[-2])
+                        change_percent = ((current_close - previous_close) / previous_close) * 100
+                        stock_dict["changePercent"] = round(change_percent, 2)
+                    else:
+                        stock_dict["changePercent"] = None
+
+                    updated_count += 1
+                    logger.info(f"[_perform_update_stocks] Updated {symbol}: ${stock_dict['price']} (change: {stock_dict.get('changePercent')}%)")
+            except Exception as e:
+                logger.error(f"[_perform_update_stocks] yfinance error for {symbol}: {e}")
+
+        # Calculate diff: percentage difference from buy price
+        price = stock_dict.get("price", 0)
+        buy_price = stock_dict.get("buyPrice", 0)
+
+        if buy_price == 0 and price > 0:
+            buy_price = round(price * 0.9, 2)
+            stock_dict["buyPrice"] = buy_price
+
+        if price > 0:
+            diff = round(((buy_price - price) / price) * 100, 2)
+            stock_dict["diff"] = diff
+
+        updated_stocks.append(stock_dict)
+
+    # Write updated data back to stockapp.json
+    existing_data["stocks"] = updated_stocks
+    with open("stockapp.json", "w") as f:
+        json.dump(existing_data, f, indent=2)
+
+    logger.info(f"[_perform_update_stocks] Completed: {updated_count} stocks updated")
+
+    return {
+        "success": True,
+        "updated_count": updated_count,
+        "total_stocks": len(updated_stocks)
+    }
+
 
 @app.delete("/api/stocks/{symbol}")
 async def delete_stock(symbol: str):
@@ -559,7 +762,8 @@ async def _perform_update_email() -> dict:
 @app.post("/api/update-email")
 async def update_email():
     """Update email.json with dailyPriceChange and needToDropUntilBuyPrice from stockapp.json."""
-    return await _perform_update_email()
+    result = await _perform_update_email()
+    return result
 
 # ============================================================================
 # Apple-Inspired Email Template Helper Functions
@@ -921,7 +1125,52 @@ async def _perform_send_email() -> dict:
 @app.post("/api/send-test-email")
 async def send_test_email():
     """Send a test email using configuration from email.json via Resend."""
-    return await _perform_send_email()
+    result = await _perform_send_email()
+    return result
+
+
+@app.get("/api/events")
+async def sse_events():
+    """Server-Sent Events endpoint for real-time updates.
+
+    Frontend can subscribe to receive notifications when:
+    - Scheduled tasks complete (stocks-updated, email-updated, email-sent)
+    - Manual button actions complete
+    """
+    async def event_generator():
+        client_queue = asyncio.Queue()
+        sse_clients.add(client_queue)
+        logger.info(f"SSE client connected. Total clients: {len(sse_clients)}")
+
+        try:
+            # Send initial connection event
+            yield "event: connected\ndata: {\"status\": \"connected\"}\n\n"
+
+            # Keep connection alive and send events
+            while True:
+                try:
+                    # Wait for events with timeout (for keepalive)
+                    message = await asyncio.wait_for(client_queue.get(), timeout=30.0)
+                    yield message
+                except asyncio.TimeoutError:
+                    # Send keepalive ping
+                    yield ": keepalive\n\n"
+        except asyncio.CancelledError:
+            pass
+        finally:
+            sse_clients.discard(client_queue)
+            logger.info(f"SSE client disconnected. Total clients: {len(sse_clients)}")
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
 
 @app.get("/favicon.ico")
 async def favicon():
@@ -1140,43 +1389,6 @@ async def chat(chat_request: ChatRequest, request: Request):
 # Scheduled Task Functions
 # ============================================================================
 
-def _advance_scheduled_tasks():
-    """Advance trigger times by 1 day for both tasks and reschedule the jobs.
-
-    After a scheduled task runs successfully, this function:
-    1. Sets both tasks to enable: false
-    2. Advances both trigger_time values by 1 day
-    3. Reschedules the jobs for the new times
-    """
-    try:
-        # Read current schedule
-        with open("schedule.json", "r") as f:
-            schedule_data = json.load(f)
-
-        # Process both tasks
-        for task_name in ["Update Email", "Send Email"]:
-            if task_name in schedule_data:
-                task = schedule_data[task_name]
-                # Set enable to false
-                task["enable"] = False
-
-                # Parse current trigger time and add 1 day
-                current_time = datetime.fromisoformat(task["trigger_time"])
-                new_time = current_time + timedelta(days=1)
-                task["trigger_time"] = new_time.isoformat()
-
-                logger.info(f"Advanced '{task_name}' trigger time to {task['trigger_time']}")
-
-        # Write updated schedule back
-        with open("schedule.json", "w") as f:
-            json.dump(schedule_data, f, indent=2)
-
-        logger.info("Schedule updated: both tasks disabled and trigger times advanced by 1 day")
-
-    except Exception as e:
-        logger.error(f"Error advancing scheduled tasks: {e}")
-
-
 async def scheduled_update_email():
     """Wrapper for scheduled Update Email execution with logging."""
     logger.info("=" * 60)
@@ -1186,12 +1398,11 @@ async def scheduled_update_email():
     try:
         result = await _perform_update_email()
         logger.info(f"SCHEDULED TASK: Update Email - Completed successfully: {result}")
+        # Notify frontend that email content was updated
+        await broadcast_sse_event("email-updated", result)
     except Exception as e:
         logger.error(f"SCHEDULED TASK: Update Email - Failed with error: {e}")
         raise
-    finally:
-        # Advance schedule after execution (both success and failure)
-        _advance_scheduled_tasks()
 
 
 async def scheduled_send_email():
@@ -1203,8 +1414,26 @@ async def scheduled_send_email():
     try:
         result = await _perform_send_email()
         logger.info(f"SCHEDULED TASK: Send Email - Completed successfully: {result}")
+        # Notify frontend that email was sent
+        await broadcast_sse_event("email-sent", result)
     except Exception as e:
         logger.error(f"SCHEDULED TASK: Send Email - Failed with error: {e}")
+        raise
+
+
+async def scheduled_update_stocks():
+    """Wrapper for scheduled Update (stock prices) execution with logging."""
+    logger.info("=" * 60)
+    logger.info("SCHEDULED TASK: Update - Starting")
+    logger.info("=" * 60)
+
+    try:
+        result = _perform_update_stocks()
+        logger.info(f"SCHEDULED TASK: Update - Completed successfully: {result}")
+        # Notify frontend that stocks were updated
+        await broadcast_sse_event("stocks-updated", result)
+    except Exception as e:
+        logger.error(f"SCHEDULED TASK: Update - Failed with error: {e}")
         raise
 
 
@@ -1222,7 +1451,26 @@ def setup_scheduled_tasks():
         logger.error(f"Failed to parse schedule.json: {e}")
         return
 
-    now = datetime.now(ZoneInfo("America/New_York"))
+    now = datetime.now(ZoneInfo("Asia/Taipei"))
+
+    # Process Update (stock prices) task
+    update_config = schedule_data.get("Update", {})
+    if update_config.get("enable", False):
+        trigger_time_str = update_config.get("trigger_time")
+        if trigger_time_str:
+            trigger_time = datetime.fromisoformat(trigger_time_str)
+            if trigger_time > now:
+                scheduler.add_job(
+                    scheduled_update_stocks,
+                    trigger=DateTrigger(run_date=trigger_time),
+                    id="update_stocks_scheduled",
+                    replace_existing=True
+                )
+                logger.info(f"Scheduled task 'Update' for {trigger_time_str}")
+            else:
+                logger.warning(f"Skipping 'Update' - trigger time {trigger_time_str} has already passed")
+    else:
+        logger.info("'Update' task is disabled in schedule.json")
 
     # Process Update Email task
     update_email_config = schedule_data.get("Update Email", {})

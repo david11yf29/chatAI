@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-20 (added scheduled task execution via APScheduler for Update Email and Send Email)
+> - **Last Updated:** 2026-01-22 (Added SSE for real-time updates, removed trigger_time advancement)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -64,7 +64,60 @@ This document describes the detailed workflow for each of the four main buttons 
 - Memory: New stock object added to `currentStocks` array
 - UI: Symbol input field receives focus
 - **No API call** - This is purely client-side
-- **No persistence** until "Update" button is clicked
+- **Auto-save on input** - As user types, changes are auto-saved after 500ms debounce (see Auto-Save Feature below)
+
+---
+
+## Auto-Save Feature
+
+### Purpose
+Automatically saves Symbol and Buy Price changes when the user finishes editing a field (on blur event). This ensures the scheduled "Update" task picks up the latest user edits.
+
+### Implementation
+
+#### Frontend (`static/js/app.js`)
+- **Function:** `autoSaveStocks()` - Sends current stocks to auto-save endpoint
+- **Function:** `debouncedAutoSave()` - Debounces saves (500ms delay) to avoid excessive API calls
+- **Event Listeners:** `input` events on `.symbol-input` and `.buy-price-input` fields (saves as user types)
+
+#### Backend (`main.py`)
+- **Endpoint:** `PATCH /api/stocks/autosave`
+- **Function:** `autosave_stocks()` - Saves Symbol and Buy Price WITHOUT fetching prices from yfinance
+
+### Workflow Steps
+
+1. **User edits Symbol or Buy Price field**
+   - `input` event updates `currentStocks` array in memory
+   - `input` event also triggers `debouncedAutoSave()`
+
+2. **After 500ms of no typing (debounce delay)**
+   - `autoSaveStocks()` sends `PATCH /api/stocks/autosave`
+   - Request body: `{ "stocks": currentStocks }`
+
+4. **Backend processes request**
+   - Reads existing `stockapp.json` to preserve price data
+   - Updates Symbol and Buy Price from request
+   - Preserves existing `price`, `changePercent`, `date`, `name` if symbol unchanged
+   - Recalculates `diff` based on current price and new buy price
+   - Writes to `stockapp.json`
+
+5. **Frontend receives response**
+   - Updates `currentStocks` with response data (preserves price info)
+
+### Key Behavior
+- **Saves as you type:** Auto-save triggers on every keystroke (debounced), not just when leaving the field
+- **Preserves price data:** If the symbol hasn't changed, existing price/changePercent/date/name are preserved
+- **Resets price data:** If symbol changes, price data is reset (will be fetched by scheduled Update task)
+- **No loading overlay:** Auto-save happens silently in background
+- **Debounced:** Multiple rapid edits only trigger one save after 500ms of no typing
+
+### Integration with Scheduled Tasks
+When the scheduled "Update" task runs:
+1. It reads `stockapp.json` which now contains the auto-saved Symbol/Buy Price
+2. Fetches fresh prices from yfinance for those symbols
+3. Writes updated prices back to `stockapp.json`
+
+This ensures user edits are picked up by scheduled tasks without requiring manual "Update" button click.
 
 ---
 
@@ -105,45 +158,63 @@ This document describes the detailed workflow for each of the four main buttons 
    - **Headers:** `Content-Type: application/json`
    - **Body:** `{ "stocks": currentStocks }`
 
-#### Phase 3: Backend Processing (`main.py` lines 308-369)
+#### Phase 3: Backend Processing (`main.py` lines 339-440)
+
+**Two-Phase Save Approach:** Symbol/buyPrice are saved FIRST before yfinance calls, ensuring user edits are persisted even if yfinance fails partway through.
+
+##### Step 1: Preliminary Save (Symbol/BuyPrice)
 
 6. **Read Existing Data**
    - Loads current `stockapp.json` (source of truth)
    - Extracts existing stocks to compare
 
-7. **Process Each Stock**
-   - For each stock in the request (skips stocks with empty symbols):
+7. **Build Preliminary Stocks List**
+   - For each stock in the request:
+     - Normalize symbol to uppercase
+     - If symbol unchanged from existing data, preserve existing price data (price, changePercent, date, name, diff)
+     - If symbol changed or new stock, set defaults
 
-   8. **Fetch Live Price Data from yfinance**
-      - Creates ticker object: `yf.Ticker(symbol)`
-      - Retrieves company info: `longName`, `shortName`, or symbol fallback
+8. **Write Preliminary Save**
+   - Writes symbol/buyPrice to `stockapp.json` immediately
+   - **Benefit:** User edits are now persisted even if yfinance calls fail
 
-   9. **Get Historical Price Data**
-      - Fetches 2-day history: `ticker.history(period="2d")` (sufficient for previous day's close)
-      - Extracts last closing price from history
-      - Gets the market close time as ISO 8601 datetime with timezone (e.g., "2026-01-16T16:00:00-05:00")
+##### Step 2: Fetch yfinance Data
 
-   10. **Calculate Daily Change Percent**
+9. **Process Each Stock**
+   - For each stock with a valid symbol:
+
+   10. **Fetch Live Price Data from yfinance**
+       - Creates ticker object: `yf.Ticker(symbol)`
+       - Retrieves company info: `longName`, `shortName`, or symbol fallback
+
+   11. **Get Historical Price Data**
+       - Fetches 2-day history: `ticker.history(period="2d")` (sufficient for previous day's close)
+       - Extracts last closing price from history
+       - Gets the market close time as ISO 8601 datetime with Taiwan timezone (e.g., "2026-01-17T05:00:00+08:00")
+
+   12. **Calculate Daily Change Percent**
        - Compares current close vs previous close
        - Formula: `((current - previous) / previous) * 100`
 
-11. **Set Default Buy Price (if not provided)**
+13. **Set Default Buy Price (if not provided)**
     - If `buyPrice` is 0 (user didn't input any value):
     - Formula: `buyPrice = price * 0.9`
     - Example: If price is $37.04, default buyPrice = $33.34
     - This gives a 10% discount target as the default buy price
 
-12. **Calculate Need to Drop Until Buy Price**
+14. **Calculate Need to Drop Until Buy Price**
     - For all stocks:
     - Formula: `diff = ((buyPrice - price) / price) * 100`
     - Negative diff = above buy price
     - Positive diff = below buy price (good opportunity)
 
-13. **Persist to Database**
-    - Writes updated stocks array to `stockapp.json`
+##### Step 3: Final Save
+
+15. **Persist to Database**
+    - Writes updated stocks array with prices to `stockapp.json`
     - Preserves other fields like `search`, `_metadata`
 
-14. **Return Response**
+16. **Return Response**
     - Returns success message with updated stocks array
 
 #### Phase 4: Frontend Updates
@@ -476,7 +547,7 @@ This document describes the detailed workflow for each of the four main buttons 
 
 ## Scheduled Task Execution
 
-In addition to manual button clicks, the "Update Email" and "Send Email" tasks can be triggered automatically at scheduled times using APScheduler.
+In addition to manual button clicks, the "Update", "Update Email", and "Send Email" tasks can be triggered automatically at scheduled times using APScheduler.
 
 ### Configuration File
 
@@ -485,13 +556,17 @@ In addition to manual button clicks, the "Update Email" and "Send Email" tasks c
 **Structure:**
 ```json
 {
+  "Update": {
+    "enable": true,
+    "trigger_time": "2026-01-17T07:00:00+08:00"
+  },
   "Update Email": {
     "enable": true,
-    "trigger_time": "2026-01-16T18:30:00-05:00"
+    "trigger_time": "2026-01-17T07:30:00+08:00"
   },
   "Send Email": {
     "enable": true,
-    "trigger_time": "2026-01-16T18:40:00-05:00"
+    "trigger_time": "2026-01-17T07:40:00+08:00"
   }
 }
 ```
@@ -511,9 +586,9 @@ In addition to manual button clicks, the "Update Email" and "Send Email" tasks c
 
 **Key Functions:**
 - `setup_scheduled_tasks()` - Reads `schedule.json` and schedules enabled tasks
-- `scheduled_update_email()` - Wrapper that logs execution and advances schedule
-- `scheduled_send_email()` - Wrapper that logs execution
-- `_advance_scheduled_tasks()` - Disables tasks and advances trigger times by 1 day
+- `scheduled_update_stocks()` - Wrapper that logs execution and advances schedule for Update task
+- `scheduled_update_email()` - Wrapper that logs execution for Update Email task
+- `scheduled_send_email()` - Wrapper that logs execution for Send Email task
 
 ### Lifecycle Events
 
@@ -536,14 +611,8 @@ In addition to manual button clicks, the "Update Email" and "Send Email" tasks c
 2. **When Scheduled Time Arrives:**
    - APScheduler triggers the appropriate async function
    - Logs "SCHEDULED TASK: [Task Name] - Starting"
-   - Calls the core function (`_perform_update_email()` or `_perform_send_email()`)
+   - Calls the core function (`_perform_update_stocks()`, `_perform_update_email()`, or `_perform_send_email()`)
    - Logs completion status
-
-3. **After Update Email Execution:**
-   - `_advance_scheduled_tasks()` is called (in `finally` block)
-   - Sets `enable: false` for both tasks
-   - Advances both `trigger_time` values by 1 day
-   - Writes updated schedule back to `schedule.json`
 
 ### Edge Case Handling
 
@@ -553,28 +622,62 @@ In addition to manual button clicks, the "Update Email" and "Send Email" tasks c
 | `schedule.json` invalid JSON | Log error, continue without scheduling |
 | `trigger_time` in the past | Log warning, skip scheduling that task |
 | `enable: false` | Skip scheduling that task |
-| Task execution fails | Log error, still advance schedule |
+| Task execution fails | Log error, task does not retry |
 
 ### Log Messages
 
 **Startup:**
 ```
 Setting up scheduled tasks from schedule.json...
-Scheduled task 'Update Email' for 2026-01-16T18:30:00-05:00
-Scheduled task 'Send Email' for 2026-01-16T18:40:00-05:00
+Scheduled task 'Update' for 2026-01-17T07:00:00+08:00
+Scheduled task 'Update Email' for 2026-01-17T07:30:00+08:00
+Scheduled task 'Send Email' for 2026-01-17T07:40:00+08:00
 APScheduler started
 ```
 
 **Execution:**
 ```
 ============================================================
-SCHEDULED TASK: Update Email - Starting
+SCHEDULED TASK: Update - Starting
 ============================================================
-SCHEDULED TASK: Update Email - Completed successfully: {...}
-Advanced 'Update Email' trigger time to 2026-01-17T18:30:00-05:00
-Advanced 'Send Email' trigger time to 2026-01-17T18:40:00-05:00
-Schedule updated: both tasks disabled and trigger times advanced by 1 day
+SCHEDULED TASK: Update - Completed successfully: {...}
 ```
+
+---
+
+## Real-Time Frontend Updates (SSE)
+
+The application uses Server-Sent Events (SSE) to push real-time updates from the backend to the frontend.
+
+### How It Works
+
+1. **Frontend connects on page load**
+   - `connectSSE()` in `app.js` establishes connection to `/api/events`
+   - Connection auto-reconnects on errors
+
+2. **Backend broadcasts events after task completion**
+   - `stocks-updated`: After scheduled/manual Update completes
+   - `email-updated`: After scheduled/manual Update Email completes
+   - `email-sent`: After scheduled/manual Send Email completes
+
+3. **Frontend reacts to events**
+   - On `stocks-updated`: Calls `fetchStocks()` to refresh UI with new data
+
+### SSE Endpoint
+
+- **URL:** `GET /api/events`
+- **Response:** `text/event-stream`
+- **Events:**
+  - `connected` - Initial connection acknowledgment
+  - `stocks-updated` - Stock prices updated
+  - `email-updated` - Email content generated
+  - `email-sent` - Email sent successfully
+
+### Key Behavior
+
+- Scheduled tasks automatically notify frontend when complete
+- Frontend refreshes stock data without manual page reload
+- Keepalive pings sent every 30 seconds to maintain connection
 
 ---
 
@@ -582,12 +685,13 @@ Schedule updated: both tasks disabled and trigger times advanced by 1 day
 
 ### Data Flow Overview
 
-| Button | Action | API Endpoint | DB Read | DB Write | External Services |
-|--------|--------|--------------|---------|----------|-------------------|
-| **Add** | Add empty row | None | None | None | None |
-| **Update** | Save & fetch prices | `PUT /api/stocks`, `GET /api/stocks` | stockapp.json | stockapp.json | yfinance |
-| **Update Email** | Generate news | `POST /api/update-email` | stockapp.json, email.json | email.json | OpenAI, Search API, News sites |
-| **Send Email** | Send email | `POST /api/send-test-email` | email.json | None | Resend |
+| Button/Feature | Action | API Endpoint | DB Read | DB Write | External Services | Schedulable |
+|----------------|--------|--------------|---------|----------|-------------------|-------------|
+| **Add** | Add empty row | None | None | None | None | No |
+| **Auto-Save** | Save edits on blur | `PATCH /api/stocks/autosave` | stockapp.json | stockapp.json | None | No |
+| **Update** | Save & fetch prices | `PUT /api/stocks`, `GET /api/stocks` | stockapp.json | stockapp.json | yfinance | Yes |
+| **Update Email** | Generate news | `POST /api/update-email` | stockapp.json, email.json | email.json | OpenAI, Search API, News sites | Yes |
+| **Send Email** | Send email | `POST /api/send-test-email` | email.json | None | Resend | Yes |
 
 ### Data Files
 - **stockapp.json** - Source of truth for stock portfolio

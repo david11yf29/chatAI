@@ -1,10 +1,14 @@
 {
+  "Update": {
+    "enable": true,
+    "trigger_time": "2026-01-22T17:53:00+08:00"
+  },
   "Update Email": {
     "enable": true,
-    "trigger_time": "2026-01-21T18:30:00-05:00"
+    "trigger_time": "2026-01-22T17:55:00+08:00"
   },
   "Send Email": {
     "enable": true,
-    "trigger_time": "2026-01-21T18:40:00-05:00"
+    "trigger_time": "2026-01-22T17:58:00+08:00"
   }
 }

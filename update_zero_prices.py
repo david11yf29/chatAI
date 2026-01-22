@@ -5,19 +5,22 @@ from zoneinfo import ZoneInfo
 
 
 def format_market_close_time(trading_date) -> str:
-    """Convert trading date to market close time in Eastern Time.
+    """Convert trading date to market close time in Taiwan Time.
 
-    US stock market closes at 4:00 PM Eastern Time.
+    US stock market closes at 4:00 PM Eastern Time, which is 5:00 AM next day in Taiwan.
 
     Args:
         trading_date: The trading date from yfinance (pandas Timestamp or datetime)
 
     Returns:
-        ISO 8601 formatted string like "2026-01-16T16:00:00-05:00"
+        ISO 8601 formatted string like "2026-01-17T05:00:00+08:00"
     """
+    from datetime import timedelta
     trade_date = trading_date.date() if hasattr(trading_date, 'date') else trading_date
-    eastern = ZoneInfo("America/New_York")
-    market_close = datetime(trade_date.year, trade_date.month, trade_date.day, 16, 0, 0, tzinfo=eastern)
+    taiwan = ZoneInfo("Asia/Taipei")
+    # Market closes at 4:00 PM Eastern Time = 5:00 AM next day Taiwan Time
+    next_day = trade_date + timedelta(days=1)
+    market_close = datetime(next_day.year, next_day.month, next_day.day, 5, 0, 0, tzinfo=taiwan)
     return market_close.isoformat()
 
 # Read stockapp.json

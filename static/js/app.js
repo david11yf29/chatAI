@@ -1,4 +1,42 @@
 let currentStocks = [];
+let autoSaveTimeout = null;
+
+// Auto-save stocks to backend without fetching prices
+async function autoSaveStocks() {
+    console.log('Auto-saving stocks...', currentStocks);
+    try {
+        const response = await fetch('/api/stocks/autosave', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ stocks: currentStocks })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Stocks auto-saved successfully:', data);
+            // Update local state with response (preserves existing price data)
+            if (data.stocks) {
+                currentStocks = data.stocks;
+                // Re-render to update Price and Change columns with preserved data
+                renderStocks(currentStocks);
+            }
+        } else {
+            console.error('Failed to auto-save stocks');
+        }
+    } catch (error) {
+        console.error('Error auto-saving stocks:', error);
+    }
+}
+
+// Debounced auto-save (waits 500ms after last change)
+function debouncedAutoSave() {
+    if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout);
+    }
+    autoSaveTimeout = setTimeout(autoSaveStocks, 500);
+}
 
 function setLoading(isLoading) {
     const overlay = document.getElementById('loading-overlay');
@@ -91,14 +129,33 @@ function renderStocks(stocks) {
     });
 
     // Add event listeners to inputs
-    // Symbol input change handler - just store in memory (no API call)
-    // Name and price will be fetched when "Update" is clicked
+    // Symbol input change handler - update in memory and auto-save on input
     document.querySelectorAll('.symbol-input').forEach(input => {
         input.addEventListener('input', (e) => {
             const index = parseInt(e.target.dataset.index);
             const newSymbol = e.target.value.toUpperCase().trim();
             e.target.value = newSymbol;
             currentStocks[index].symbol = newSymbol;
+
+            // Reset price data when symbol changes
+            currentStocks[index].price = 0;
+            currentStocks[index].changePercent = 0;
+            currentStocks[index].buyPrice = 0;
+            currentStocks[index].diff = 0;
+
+            // Update DOM immediately without re-rendering (to preserve focus)
+            const row = e.target.closest('tr');
+            const cells = row.querySelectorAll('td');
+            cells[2].textContent = '$0.00';  // Price column
+            cells[3].textContent = '-';       // Change column
+            cells[3].className = '';          // Remove positive/negative class
+            const buyPriceInput = cells[4].querySelector('input');
+            if (buyPriceInput) {
+                buyPriceInput.value = '0.00';
+            }
+
+            // Auto-save as user types (debounced)
+            debouncedAutoSave();
         });
     });
 
@@ -106,6 +163,8 @@ function renderStocks(stocks) {
         input.addEventListener('input', (e) => {
             const index = parseInt(e.target.dataset.index);
             currentStocks[index].buyPrice = parseFloat(e.target.value) || 0;
+            // Auto-save as user types (debounced)
+            debouncedAutoSave();
         });
     });
 

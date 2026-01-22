@@ -12,40 +12,52 @@
   "content": {
     "dailyPriceChange": [
       {
-        "symbol": "RMBS",
-        "name": "Rambus Inc.",
-        "price": 107.99,
-        "changePercent": 4.77,
-        "date": "2026-01-16T16:00:00-05:00",
-        "news": "Rambus (RMBS) stock rose after the company reported better-than-forecast second-quarter financial results. The chipmaker announced earnings of 53 cents per share on sales of $172.2 million, representing year-over-year increases of 61% and 30%, respectively. The company's strong performance and optimistic outlook are attributed to accelerating demand for high-performance computing and AI infrastructure."
+        "symbol": "MU",
+        "name": "Micron Technology, Inc.",
+        "price": 389.11,
+        "changePercent": 6.61,
+        "date": "2026-01-22T05:00:00+08:00",
+        "news": "Micron Technology's stock surged 6.61% to close at $389.11 amid a severe memory chip shortage driven by exploding AI demand across sectors. CEO Sanjay Mehrotra emphasized memory as a \"key enabler of AI\" and a strategic asset, noting long lead times for new fabrication plants despite expansions like acquiring a Taiwanese site and $200 billion U.S. investments. The shortage has boosted prices and fully booked Micron's AI memory products through 2026, supporting strong momentum with the stock up 255.74% over the past year."
       },
       {
-        "symbol": "BABA",
-        "name": "Alibaba Group Holding Limited",
-        "price": 165.4,
-        "changePercent": -3.24,
-        "date": "2026-01-16T16:00:00-05:00",
-        "news": "Alibaba Group (BABA) stock slid 7.5% following its fiscal Q4 earnings release, as both adjusted earnings of 12.52 yuan per ADS and sales of 236.45 billion yuan ($32.8 billion) missed Wall Street estimates of 12.56 yuan and 239.6 billion yuan, respectively. Despite year-over-year growth in earnings (23%) and revenue (7%), the shortfall triggered the sell-off, with shares testing a key technical level before partial recovery. Cloud revenue grew 18% to 30.1 billion yuan, boosted by triple-digit AI product gains for the seventh straight quarter, though broader economic concerns in China persist."
+        "symbol": "SNDK",
+        "name": "Sandisk Corporation",
+        "price": 501.29,
+        "changePercent": 10.63,
+        "date": "2026-01-22T05:00:00+08:00",
+        "news": "**Sandisk Corporation (SNDK) stock surged 10.63% to $501.29, driven by its position as a leading beneficiary of the AI-driven NAND flash memory supercycle, with strong demand from data centers and complex AI workloads amid supply shortages.** **The article highlights Sandisk's technological advancements, including the BiCS8 node for scalability in edge and cloud AI applications and upcoming high-bandwidth flash (HBF) innovations, positioning it for outsized growth as data centers become the primary NAND demand driver.** **This momentum follows an 800%+ rise since its February 2025 spinoff from Western Digital, fueled by favorable pricing tailwinds and accelerating bit demand.**"
       }
     ],
     "needToDropUntilBuyPrice": [
       {
+        "symbol": "MU",
+        "price": 389.11,
+        "diff": -10.0,
+        "date": "2026-01-22T05:00:00+08:00"
+      },
+      {
+        "symbol": "SNDK",
+        "price": 501.29,
+        "diff": -10.0,
+        "date": "2026-01-22T05:00:00+08:00"
+      },
+      {
+        "symbol": "NVDA",
+        "price": 183.32,
+        "diff": -10.0,
+        "date": "2026-01-22T05:00:00+08:00"
+      },
+      {
         "symbol": "AAOI",
-        "price": 37.04,
-        "diff": -10.8,
-        "date": "2026-01-16T16:00:00-05:00"
+        "price": 38.38,
+        "diff": -10.01,
+        "date": "2026-01-22T05:00:00+08:00"
       },
       {
-        "symbol": "RMBS",
-        "price": 107.99,
+        "symbol": "MSFT",
+        "price": 444.11,
         "diff": -10.0,
-        "date": "2026-01-16T16:00:00-05:00"
-      },
-      {
-        "symbol": "BABA",
-        "price": 165.4,
-        "diff": -10.0,
-        "date": "2026-01-16T16:00:00-05:00"
+        "date": "2026-01-22T05:00:00+08:00"
       }
     ]
   }
