@@ -1,6 +1,7 @@
 let currentStocks = [];
 let autoSaveTimeout = null;
 let eventSource = null;
+let sseHealthCheckInterval = null;
 
 // SSE connection to receive real-time updates from backend
 function connectSSE() {
@@ -9,10 +10,22 @@ function connectSSE() {
         eventSource.close();
     }
 
+    // Clear any existing health check interval
+    if (sseHealthCheckInterval) {
+        clearInterval(sseHealthCheckInterval);
+        sseHealthCheckInterval = null;
+    }
+
     eventSource = new EventSource('/api/events');
+
+    eventSource.onopen = () => {
+        console.log('SSE connection opened');
+    };
 
     eventSource.addEventListener('connected', (e) => {
         console.log('SSE connected:', JSON.parse(e.data));
+        // Fetch latest stocks on reconnection to catch any missed events
+        fetchStocks();
     });
 
     eventSource.addEventListener('stocks-updated', (e) => {
@@ -31,13 +44,38 @@ function connectSSE() {
 
     eventSource.onerror = (e) => {
         console.error('SSE connection error:', e);
+        eventSource.close();
+        // Clear health check on error
+        if (sseHealthCheckInterval) {
+            clearInterval(sseHealthCheckInterval);
+            sseHealthCheckInterval = null;
+        }
         // Reconnect after a delay
         setTimeout(() => {
             console.log('Attempting SSE reconnection...');
             connectSSE();
         }, 5000);
     };
+
+    // Health check: verify connection is still alive every 10 seconds
+    sseHealthCheckInterval = setInterval(() => {
+        if (!eventSource || eventSource.readyState === EventSource.CLOSED) {
+            console.log('SSE connection lost (health check), reconnecting...');
+            connectSSE();
+        }
+    }, 10000);
 }
+
+// Reconnect SSE when tab becomes visible again
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        console.log('Tab became visible, checking SSE connection...');
+        if (!eventSource || eventSource.readyState !== EventSource.OPEN) {
+            console.log('SSE not connected, reconnecting...');
+            connectSSE();
+        }
+    }
+});
 
 // Auto-save stocks to backend without fetching prices
 async function autoSaveStocks() {

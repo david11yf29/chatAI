@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-22 (Fixed: Added missing connectSSE() implementation to app.js)
+> - **Last Updated:** 2026-01-22 (Fixed: SSE reconnection now fetches latest stocks to catch missed events)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -678,6 +678,7 @@ The application uses Server-Sent Events (SSE) to push real-time updates from the
 - Scheduled tasks automatically notify frontend when complete
 - Frontend refreshes stock data without manual page reload
 - Keepalive pings sent every 30 seconds to maintain connection
+- **On reconnection:** Frontend fetches latest stocks to catch any events missed during disconnection
 
 ---
 
