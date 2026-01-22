@@ -24,6 +24,8 @@ function connectSSE() {
 
     eventSource.addEventListener('connected', (e) => {
         console.log('SSE connected:', JSON.parse(e.data));
+        // Fetch latest stocks on reconnection to catch any missed events
+        fetchStocks();
     });
 
     eventSource.addEventListener('stocks-updated', (e) => {
