@@ -10,7 +10,7 @@
       "name": "Applied Optoelectronics, Inc.",
       "price": 39.26,
       "changePercent": 5.99,
-      "date": "2026-01-20T16:00:00-05:00",
+      "date": "2026-01-21T05:00:00+08:00",
       "buyPrice": 33.0,
       "diff": -15.94
     },
@@ -19,7 +19,7 @@
       "name": "Microsoft Corporation",
       "price": 454.52,
       "changePercent": -1.16,
-      "date": "2026-01-20T16:00:00-05:00",
+      "date": "2026-01-21T05:00:00+08:00",
       "buyPrice": 448.25,
       "diff": -1.38
     },
@@ -28,7 +28,7 @@
       "name": "Meta Platforms, Inc.",
       "price": 604.12,
       "changePercent": -2.6,
-      "date": "2026-01-20T16:00:00-05:00",
+      "date": "2026-01-21T05:00:00+08:00",
       "buyPrice": 580.0,
       "diff": -3.99
     },
@@ -37,7 +37,7 @@
       "name": "Amazon.com, Inc.",
       "price": 231.0,
       "changePercent": -3.4,
-      "date": "2026-01-20T16:00:00-05:00",
+      "date": "2026-01-21T05:00:00+08:00",
       "buyPrice": 225.0,
       "diff": -2.6
     },
@@ -46,7 +46,7 @@
       "name": "Tesla, Inc.",
       "price": 419.25,
       "changePercent": -4.17,
-      "date": "2026-01-20T16:00:00-05:00",
+      "date": "2026-01-21T05:00:00+08:00",
       "buyPrice": 382.0,
       "diff": -8.88
     }
