@@ -127,17 +127,14 @@ function renderStocks(stocks) {
     });
 
     // Add event listeners to inputs
-    // Symbol input change handler - update in memory and auto-save on blur
+    // Symbol input change handler - update in memory and auto-save on input
     document.querySelectorAll('.symbol-input').forEach(input => {
         input.addEventListener('input', (e) => {
             const index = parseInt(e.target.dataset.index);
             const newSymbol = e.target.value.toUpperCase().trim();
             e.target.value = newSymbol;
             currentStocks[index].symbol = newSymbol;
-        });
-        // Auto-save when user finishes editing (on blur)
-        input.addEventListener('blur', (e) => {
-            console.log('Symbol input blur - triggering auto-save');
+            // Auto-save as user types (debounced)
             debouncedAutoSave();
         });
     });
@@ -146,10 +143,7 @@ function renderStocks(stocks) {
         input.addEventListener('input', (e) => {
             const index = parseInt(e.target.dataset.index);
             currentStocks[index].buyPrice = parseFloat(e.target.value) || 0;
-        });
-        // Auto-save when user finishes editing (on blur)
-        input.addEventListener('blur', (e) => {
-            console.log('Buy price input blur - triggering auto-save');
+            // Auto-save as user types (debounced)
             debouncedAutoSave();
         });
     });
