@@ -8,29 +8,47 @@
     {
       "symbol": "AAOI",
       "name": "Applied Optoelectronics, Inc.",
-      "price": 37.04,
-      "changePercent": 0.11,
-      "date": "2026-01-16T16:00:00-05:00",
+      "price": 39.26,
+      "changePercent": 5.99,
+      "date": "2026-01-20T16:00:00-05:00",
       "buyPrice": 33.0,
-      "diff": -10.91
+      "diff": -15.94
     },
     {
       "symbol": "MSFT",
       "name": "Microsoft Corporation",
-      "price": 459.86,
-      "changePercent": 0.7,
-      "date": "2026-01-16T16:00:00-05:00",
+      "price": 454.52,
+      "changePercent": -1.16,
+      "date": "2026-01-20T16:00:00-05:00",
       "buyPrice": 448.25,
-      "diff": -2.52
+      "diff": -1.38
     },
     {
       "symbol": "META",
       "name": "Meta Platforms, Inc.",
-      "price": 620.25,
-      "changePercent": -0.09,
-      "date": "2026-01-16T16:00:00-05:00",
+      "price": 604.12,
+      "changePercent": -2.6,
+      "date": "2026-01-20T16:00:00-05:00",
       "buyPrice": 580.0,
-      "diff": -6.49
+      "diff": -3.99
+    },
+    {
+      "symbol": "AMZN",
+      "name": "Amazon.com, Inc.",
+      "price": 231.0,
+      "changePercent": -3.4,
+      "date": "2026-01-20T16:00:00-05:00",
+      "buyPrice": 225.0,
+      "diff": -2.6
+    },
+    {
+      "symbol": "TSLA",
+      "name": "Tesla, Inc.",
+      "price": 419.25,
+      "changePercent": -4.17,
+      "date": "2026-01-20T16:00:00-05:00",
+      "buyPrice": 382.0,
+      "diff": -8.88
     }
   ]
 }
