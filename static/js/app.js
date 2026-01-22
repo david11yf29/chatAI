@@ -1,4 +1,40 @@
 let currentStocks = [];
+let autoSaveTimeout = null;
+
+// Auto-save stocks to backend without fetching prices
+async function autoSaveStocks() {
+    console.log('Auto-saving stocks...', currentStocks);
+    try {
+        const response = await fetch('/api/stocks/autosave', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ stocks: currentStocks })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Stocks auto-saved successfully:', data);
+            // Update local state with response (preserves existing price data)
+            if (data.stocks) {
+                currentStocks = data.stocks;
+            }
+        } else {
+            console.error('Failed to auto-save stocks');
+        }
+    } catch (error) {
+        console.error('Error auto-saving stocks:', error);
+    }
+}
+
+// Debounced auto-save (waits 500ms after last change)
+function debouncedAutoSave() {
+    if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout);
+    }
+    autoSaveTimeout = setTimeout(autoSaveStocks, 500);
+}
 
 function setLoading(isLoading) {
     const overlay = document.getElementById('loading-overlay');
@@ -91,8 +127,7 @@ function renderStocks(stocks) {
     });
 
     // Add event listeners to inputs
-    // Symbol input change handler - just store in memory (no API call)
-    // Name and price will be fetched when "Update" is clicked
+    // Symbol input change handler - update in memory and auto-save on blur
     document.querySelectorAll('.symbol-input').forEach(input => {
         input.addEventListener('input', (e) => {
             const index = parseInt(e.target.dataset.index);
@@ -100,12 +135,22 @@ function renderStocks(stocks) {
             e.target.value = newSymbol;
             currentStocks[index].symbol = newSymbol;
         });
+        // Auto-save when user finishes editing (on blur)
+        input.addEventListener('blur', (e) => {
+            console.log('Symbol input blur - triggering auto-save');
+            debouncedAutoSave();
+        });
     });
 
     document.querySelectorAll('.buy-price-input').forEach(input => {
         input.addEventListener('input', (e) => {
             const index = parseInt(e.target.dataset.index);
             currentStocks[index].buyPrice = parseFloat(e.target.value) || 0;
+        });
+        // Auto-save when user finishes editing (on blur)
+        input.addEventListener('blur', (e) => {
+            console.log('Buy price input blur - triggering auto-save');
+            debouncedAutoSave();
         });
     });
 
