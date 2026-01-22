@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
+import asyncio
 from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -55,6 +56,29 @@ app = FastAPI()
 
 # Global scheduler for scheduled tasks
 scheduler = AsyncIOScheduler()
+
+# SSE (Server-Sent Events) client management
+sse_clients: set[asyncio.Queue] = set()
+
+async def broadcast_sse_event(event_type: str, data: dict = None):
+    """Broadcast an event to all connected SSE clients."""
+    import json
+    event_data = json.dumps({"type": event_type, "data": data or {}})
+    message = f"event: {event_type}\ndata: {event_data}\n\n"
+
+    # Send to all connected clients
+    disconnected = set()
+    for client_queue in sse_clients:
+        try:
+            await client_queue.put(message)
+        except Exception:
+            disconnected.add(client_queue)
+
+    # Clean up disconnected clients
+    for client_queue in disconnected:
+        sse_clients.discard(client_queue)
+
+    logger.info(f"Broadcast SSE event '{event_type}' to {len(sse_clients)} clients")
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -338,19 +362,56 @@ def format_market_close_time(trading_date) -> str:
 
 @app.put("/api/stocks")
 async def update_stocks(request: StocksUpdateRequest):
-    """Update stocks - fetches prices for changed symbols and persists to stockapp.json (source of truth)."""
+    """Update stocks - saves symbol/buyPrice first, then fetches prices from yfinance.
+
+    Two-phase save approach:
+    1. Save symbol/buyPrice to stockapp.json FIRST (preserves user edits even if yfinance fails)
+    2. Fetch prices from yfinance
+    3. Final save with updated prices
+    """
     # Read existing data to preserve the search field and _metadata
     with open("stockapp.json", "r") as f:
         existing_data = json.load(f)
 
     existing_stocks = existing_data.get("stocks", [])
-    updated_stocks = []
 
+    # STEP 1: Save symbol/buyPrice FIRST (before yfinance calls)
+    # This ensures user edits are persisted even if yfinance fails
+    preliminary_stocks = []
     for i, stock in enumerate(request.stocks):
         stock_dict = stock.model_dump()
         symbol = stock.symbol.upper().strip()
+        stock_dict["symbol"] = symbol
 
-        # Always fetch fresh prices for stocks with valid symbols
+        # Preserve existing price data if symbol unchanged
+        if i < len(existing_stocks) and existing_stocks[i].get("symbol", "").upper() == symbol:
+            stock_dict["price"] = existing_stocks[i].get("price", 0)
+            stock_dict["changePercent"] = existing_stocks[i].get("changePercent", 0)
+            stock_dict["date"] = existing_stocks[i].get("date", "")
+            stock_dict["name"] = existing_stocks[i].get("name", symbol)
+            stock_dict["diff"] = existing_stocks[i].get("diff", 0)
+        else:
+            # Symbol changed or new stock - set defaults
+            stock_dict["price"] = stock_dict.get("price", 0)
+            stock_dict["changePercent"] = stock_dict.get("changePercent", 0)
+            stock_dict["date"] = stock_dict.get("date", "")
+            stock_dict["name"] = stock_dict.get("name", symbol)
+            stock_dict["diff"] = stock_dict.get("diff", 0)
+
+        preliminary_stocks.append(stock_dict)
+
+    # Write preliminary save (symbol/buyPrice persisted)
+    existing_data["stocks"] = preliminary_stocks
+    with open("stockapp.json", "w") as f:
+        json.dump(existing_data, f, indent=2)
+    logger.info(f"Preliminary save completed: {len(preliminary_stocks)} stocks saved to stockapp.json")
+
+    # STEP 2: Fetch yfinance data for each stock
+    updated_stocks = []
+    for stock_dict in preliminary_stocks:
+        symbol = stock_dict["symbol"]
+
+        # Fetch fresh prices for stocks with valid symbols
         if symbol:
             logger.info(f"Fetching fresh data for {symbol}")
             try:
@@ -396,10 +457,11 @@ async def update_stocks(request: StocksUpdateRequest):
 
         updated_stocks.append(stock_dict)
 
-    # Update stockapp.json (SOURCE OF TRUTH)
+    # STEP 3: Final save with updated prices
     existing_data["stocks"] = updated_stocks
     with open("stockapp.json", "w") as f:
         json.dump(existing_data, f, indent=2)
+    logger.info(f"Final save completed: {len(updated_stocks)} stocks with prices saved to stockapp.json")
 
     return {"message": "Stocks updated successfully", "stocks": updated_stocks}
 
@@ -700,7 +762,8 @@ async def _perform_update_email() -> dict:
 @app.post("/api/update-email")
 async def update_email():
     """Update email.json with dailyPriceChange and needToDropUntilBuyPrice from stockapp.json."""
-    return await _perform_update_email()
+    result = await _perform_update_email()
+    return result
 
 # ============================================================================
 # Apple-Inspired Email Template Helper Functions
@@ -1062,7 +1125,52 @@ async def _perform_send_email() -> dict:
 @app.post("/api/send-test-email")
 async def send_test_email():
     """Send a test email using configuration from email.json via Resend."""
-    return await _perform_send_email()
+    result = await _perform_send_email()
+    return result
+
+
+@app.get("/api/events")
+async def sse_events():
+    """Server-Sent Events endpoint for real-time updates.
+
+    Frontend can subscribe to receive notifications when:
+    - Scheduled tasks complete (stocks-updated, email-updated, email-sent)
+    - Manual button actions complete
+    """
+    async def event_generator():
+        client_queue = asyncio.Queue()
+        sse_clients.add(client_queue)
+        logger.info(f"SSE client connected. Total clients: {len(sse_clients)}")
+
+        try:
+            # Send initial connection event
+            yield "event: connected\ndata: {\"status\": \"connected\"}\n\n"
+
+            # Keep connection alive and send events
+            while True:
+                try:
+                    # Wait for events with timeout (for keepalive)
+                    message = await asyncio.wait_for(client_queue.get(), timeout=30.0)
+                    yield message
+                except asyncio.TimeoutError:
+                    # Send keepalive ping
+                    yield ": keepalive\n\n"
+        except asyncio.CancelledError:
+            pass
+        finally:
+            sse_clients.discard(client_queue)
+            logger.info(f"SSE client disconnected. Total clients: {len(sse_clients)}")
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
 
 @app.get("/favicon.ico")
 async def favicon():
@@ -1281,43 +1389,6 @@ async def chat(chat_request: ChatRequest, request: Request):
 # Scheduled Task Functions
 # ============================================================================
 
-def _advance_scheduled_tasks():
-    """Advance trigger times by 1 day for all tasks and reschedule the jobs.
-
-    After a scheduled task runs successfully, this function:
-    1. Advances all trigger_time values by 1 day
-    2. Reschedules the jobs for the new times
-
-    Note: The 'enable' field is NOT modified - only users can change it manually.
-    """
-    try:
-        # Read current schedule
-        with open("schedule.json", "r") as f:
-            schedule_data = json.load(f)
-
-        # Process all tasks
-        for task_name in ["Update", "Update Email", "Send Email"]:
-            if task_name in schedule_data:
-                task = schedule_data[task_name]
-                # Note: 'enable' field is preserved - only users can change it
-
-                # Parse current trigger time and add 1 day
-                current_time = datetime.fromisoformat(task["trigger_time"])
-                new_time = current_time + timedelta(days=1)
-                task["trigger_time"] = new_time.isoformat()
-
-                logger.info(f"Advanced '{task_name}' trigger time to {task['trigger_time']}")
-
-        # Write updated schedule back
-        with open("schedule.json", "w") as f:
-            json.dump(schedule_data, f, indent=2)
-
-        logger.info("Schedule updated: trigger times advanced by 1 day")
-
-    except Exception as e:
-        logger.error(f"Error advancing scheduled tasks: {e}")
-
-
 async def scheduled_update_email():
     """Wrapper for scheduled Update Email execution with logging."""
     logger.info("=" * 60)
@@ -1327,12 +1398,11 @@ async def scheduled_update_email():
     try:
         result = await _perform_update_email()
         logger.info(f"SCHEDULED TASK: Update Email - Completed successfully: {result}")
+        # Notify frontend that email content was updated
+        await broadcast_sse_event("email-updated", result)
     except Exception as e:
         logger.error(f"SCHEDULED TASK: Update Email - Failed with error: {e}")
         raise
-    finally:
-        # Advance schedule after execution (both success and failure)
-        _advance_scheduled_tasks()
 
 
 async def scheduled_send_email():
@@ -1344,6 +1414,8 @@ async def scheduled_send_email():
     try:
         result = await _perform_send_email()
         logger.info(f"SCHEDULED TASK: Send Email - Completed successfully: {result}")
+        # Notify frontend that email was sent
+        await broadcast_sse_event("email-sent", result)
     except Exception as e:
         logger.error(f"SCHEDULED TASK: Send Email - Failed with error: {e}")
         raise
@@ -1358,12 +1430,11 @@ async def scheduled_update_stocks():
     try:
         result = _perform_update_stocks()
         logger.info(f"SCHEDULED TASK: Update - Completed successfully: {result}")
+        # Notify frontend that stocks were updated
+        await broadcast_sse_event("stocks-updated", result)
     except Exception as e:
         logger.error(f"SCHEDULED TASK: Update - Failed with error: {e}")
         raise
-    finally:
-        # Advance schedule after execution (both success and failure)
-        _advance_scheduled_tasks()
 
 
 def setup_scheduled_tasks():
