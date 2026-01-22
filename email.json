@@ -6,46 +6,67 @@
   ],
   "time": "2026-01-19T08:00:00+08:00",
   "to": [
-    "david11yf29@gmail.com"
+    "david11yf29@gmail.com",
+    "chenchuchu.grace@gmail.com"
   ],
   "subject": "Stocker Tracker Report",
   "content": {
     "dailyPriceChange": [
       {
-        "symbol": "RMBS",
-        "name": "Rambus Inc.",
-        "price": 107.99,
-        "changePercent": 4.77,
-        "date": "2026-01-16T16:00:00-05:00",
-        "news": "Rambus (RMBS) stock rose after the company reported better-than-forecast second-quarter financial results. The chipmaker announced earnings of 53 cents per share on sales of $172.2 million, representing year-over-year increases of 61% and 30%, respectively. The company's strong performance and optimistic outlook are attributed to accelerating demand for high-performance computing and AI infrastructure."
+        "symbol": "AAOI",
+        "name": "Applied Optoelectronics, Inc.",
+        "price": 39.26,
+        "changePercent": 5.99,
+        "date": "2026-01-20T16:00:00-05:00",
+        "news": "Applied Optoelectronics (AAOI) stock rose, driven by strong investor optimism surrounding the artificial intelligence boom and surging demand for data center components. The increase was largely fueled by news that the company received its first volume order for high-speed 800G transceivers from a major hyperscale customer. This key order prompted several analysts to reiterate \"buy\" ratings and raise their price targets, signaling confidence in the company's growth trajectory."
       },
       {
-        "symbol": "BABA",
-        "name": "Alibaba Group Holding Limited",
-        "price": 165.4,
-        "changePercent": -3.24,
-        "date": "2026-01-16T16:00:00-05:00",
-        "news": "Alibaba Group (BABA) stock slid 7.5% following its fiscal Q4 earnings release, as both adjusted earnings of 12.52 yuan per ADS and sales of 236.45 billion yuan ($32.8 billion) missed Wall Street estimates of 12.56 yuan and 239.6 billion yuan, respectively. Despite year-over-year growth in earnings (23%) and revenue (7%), the shortfall triggered the sell-off, with shares testing a key technical level before partial recovery. Cloud revenue grew 18% to 30.1 billion yuan, boosted by triple-digit AI product gains for the seventh straight quarter, though broader economic concerns in China persist."
+        "symbol": "AMZN",
+        "name": "Amazon.com, Inc.",
+        "price": 231.0,
+        "changePercent": -3.4,
+        "date": "2026-01-20T16:00:00-05:00",
+        "news": "Amazon's stock fell 3.4% due to a tech sector downturn driven by investor anxiety over high valuations in artificial intelligence. This pullback was intensified by a downgrade from Rothschild & Co Redburn, which raised concerns about future growth at Amazon Web Services (AWS) and the profitability of its AI ventures."
+      },
+      {
+        "symbol": "TSLA",
+        "name": "Tesla, Inc.",
+        "price": 419.25,
+        "changePercent": -4.17,
+        "date": "2026-01-20T16:00:00-05:00",
+        "news": "Tesla's stock declined after Stifel analyst Stephen Gengaro lowered the price target, citing significant headwinds for the electric vehicle maker. The downgrade was based on the company's \"net favorability rating nearing all-time lows,\" which could hurt near-term sales, coupled with tumbling demand in Europe and mixed fourth-quarter financial results. CEO Elon Musk's political involvement was also noted as a factor contributing to the negative public perception."
       }
     ],
     "needToDropUntilBuyPrice": [
       {
         "symbol": "AAOI",
-        "price": 37.04,
-        "diff": -10.8,
-        "date": "2026-01-16T16:00:00-05:00"
+        "price": 39.26,
+        "diff": -15.94,
+        "date": "2026-01-20T16:00:00-05:00"
       },
       {
-        "symbol": "RMBS",
-        "price": 107.99,
-        "diff": -10.0,
-        "date": "2026-01-16T16:00:00-05:00"
+        "symbol": "MSFT",
+        "price": 454.52,
+        "diff": -1.38,
+        "date": "2026-01-20T16:00:00-05:00"
       },
       {
-        "symbol": "BABA",
-        "price": 165.4,
-        "diff": -10.0,
-        "date": "2026-01-16T16:00:00-05:00"
+        "symbol": "META",
+        "price": 604.12,
+        "diff": -3.99,
+        "date": "2026-01-20T16:00:00-05:00"
+      },
+      {
+        "symbol": "AMZN",
+        "price": 231.0,
+        "diff": -2.6,
+        "date": "2026-01-20T16:00:00-05:00"
+      },
+      {
+        "symbol": "TSLA",
+        "price": 419.25,
+        "diff": -8.88,
+        "date": "2026-01-20T16:00:00-05:00"
       }
     ]
   }
