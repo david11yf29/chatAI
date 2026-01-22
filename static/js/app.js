@@ -19,6 +19,8 @@ async function autoSaveStocks() {
             // Update local state with response (preserves existing price data)
             if (data.stocks) {
                 currentStocks = data.stocks;
+                // Re-render to update Price and Change columns with preserved data
+                renderStocks(currentStocks);
             }
         } else {
             console.error('Failed to auto-save stocks');
@@ -134,6 +136,24 @@ function renderStocks(stocks) {
             const newSymbol = e.target.value.toUpperCase().trim();
             e.target.value = newSymbol;
             currentStocks[index].symbol = newSymbol;
+
+            // Reset price data when symbol changes
+            currentStocks[index].price = 0;
+            currentStocks[index].changePercent = 0;
+            currentStocks[index].buyPrice = 0;
+            currentStocks[index].diff = 0;
+
+            // Update DOM immediately without re-rendering (to preserve focus)
+            const row = e.target.closest('tr');
+            const cells = row.querySelectorAll('td');
+            cells[2].textContent = '$0.00';  // Price column
+            cells[3].textContent = '-';       // Change column
+            cells[3].className = '';          // Remove positive/negative class
+            const buyPriceInput = cells[4].querySelector('input');
+            if (buyPriceInput) {
+                buyPriceInput.value = '0.00';
+            }
+
             // Auto-save as user types (debounced)
             debouncedAutoSave();
         });
