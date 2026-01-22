@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-22 (Added SSE for real-time updates, removed trigger_time advancement)
+> - **Last Updated:** 2026-01-22 (Fixed: Added missing connectSSE() implementation to app.js)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >

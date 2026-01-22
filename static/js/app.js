@@ -1,5 +1,43 @@
 let currentStocks = [];
 let autoSaveTimeout = null;
+let eventSource = null;
+
+// SSE connection to receive real-time updates from backend
+function connectSSE() {
+    // Close existing connection if any
+    if (eventSource) {
+        eventSource.close();
+    }
+
+    eventSource = new EventSource('/api/events');
+
+    eventSource.addEventListener('connected', (e) => {
+        console.log('SSE connected:', JSON.parse(e.data));
+    });
+
+    eventSource.addEventListener('stocks-updated', (e) => {
+        console.log('SSE: stocks-updated event received', JSON.parse(e.data));
+        // Refresh the UI with latest stock data
+        fetchStocks();
+    });
+
+    eventSource.addEventListener('email-updated', (e) => {
+        console.log('SSE: email-updated event received', JSON.parse(e.data));
+    });
+
+    eventSource.addEventListener('email-sent', (e) => {
+        console.log('SSE: email-sent event received', JSON.parse(e.data));
+    });
+
+    eventSource.onerror = (e) => {
+        console.error('SSE connection error:', e);
+        // Reconnect after a delay
+        setTimeout(() => {
+            console.log('Attempting SSE reconnection...');
+            connectSSE();
+        }, 5000);
+    };
+}
 
 // Auto-save stocks to backend without fetching prices
 async function autoSaveStocks() {
@@ -305,6 +343,7 @@ async function sendEmail() {
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchStocks();
+    connectSSE();  // Establish SSE connection for real-time updates
     document.getElementById('add-btn').addEventListener('click', addStock);
     document.getElementById('update-btn').addEventListener('click', saveStocks);
     document.getElementById('update-email-btn').addEventListener('click', updateEmail);
