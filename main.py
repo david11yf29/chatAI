@@ -313,22 +313,24 @@ async def get_stock_info(symbol: str):
 
 
 def format_market_close_time(trading_date) -> str:
-    """Convert trading date to market close time in Eastern Time.
+    """Convert trading date to market close time in Taiwan Time.
 
-    US stock market closes at 4:00 PM Eastern Time.
+    US stock market closes at 4:00 PM Eastern Time, which is 5:00 AM next day in Taiwan.
 
     Args:
         trading_date: The trading date from yfinance (pandas Timestamp or datetime)
 
     Returns:
-        ISO 8601 formatted string like "2026-01-16T16:00:00-05:00"
+        ISO 8601 formatted string like "2026-01-17T05:00:00+08:00"
     """
     # Get the trading date as a date object
     trade_date = trading_date.date() if hasattr(trading_date, 'date') else trading_date
 
-    # Market closes at 4:00 PM Eastern Time
-    eastern = ZoneInfo("America/New_York")
-    market_close = datetime(trade_date.year, trade_date.month, trade_date.day, 16, 0, 0, tzinfo=eastern)
+    # Market closes at 4:00 PM Eastern Time = 5:00 AM next day Taiwan Time
+    taiwan = ZoneInfo("Asia/Taipei")
+    # Add one day to get the next day, set time to 5:00 AM
+    next_day = trade_date + timedelta(days=1)
+    market_close = datetime(next_day.year, next_day.month, next_day.day, 5, 0, 0, tzinfo=taiwan)
 
     # Format as ISO 8601 with timezone offset
     return market_close.isoformat()
@@ -1318,7 +1320,7 @@ def setup_scheduled_tasks():
         logger.error(f"Failed to parse schedule.json: {e}")
         return
 
-    now = datetime.now(ZoneInfo("America/New_York"))
+    now = datetime.now(ZoneInfo("Asia/Taipei"))
 
     # Process Update (stock prices) task
     update_config = schedule_data.get("Update", {})

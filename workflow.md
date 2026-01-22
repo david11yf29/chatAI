@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-22 (added scheduled task execution for Update stock prices)
+> - **Last Updated:** 2026-01-22 (migrated all timestamps from Eastern Time to Taiwan Time +08:00)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -121,7 +121,7 @@ This document describes the detailed workflow for each of the four main buttons 
    9. **Get Historical Price Data**
       - Fetches 2-day history: `ticker.history(period="2d")` (sufficient for previous day's close)
       - Extracts last closing price from history
-      - Gets the market close time as ISO 8601 datetime with timezone (e.g., "2026-01-16T16:00:00-05:00")
+      - Gets the market close time as ISO 8601 datetime with Taiwan timezone (e.g., "2026-01-17T05:00:00+08:00")
 
    10. **Calculate Daily Change Percent**
        - Compares current close vs previous close
@@ -487,15 +487,15 @@ In addition to manual button clicks, the "Update", "Update Email", and "Send Ema
 {
   "Update": {
     "enable": true,
-    "trigger_time": "2026-01-16T18:00:00-05:00"
+    "trigger_time": "2026-01-17T07:00:00+08:00"
   },
   "Update Email": {
     "enable": true,
-    "trigger_time": "2026-01-16T18:30:00-05:00"
+    "trigger_time": "2026-01-17T07:30:00+08:00"
   },
   "Send Email": {
     "enable": true,
-    "trigger_time": "2026-01-16T18:40:00-05:00"
+    "trigger_time": "2026-01-17T07:40:00+08:00"
   }
 }
 ```
@@ -565,9 +565,9 @@ In addition to manual button clicks, the "Update", "Update Email", and "Send Ema
 **Startup:**
 ```
 Setting up scheduled tasks from schedule.json...
-Scheduled task 'Update' for 2026-01-16T18:00:00-05:00
-Scheduled task 'Update Email' for 2026-01-16T18:30:00-05:00
-Scheduled task 'Send Email' for 2026-01-16T18:40:00-05:00
+Scheduled task 'Update' for 2026-01-17T07:00:00+08:00
+Scheduled task 'Update Email' for 2026-01-17T07:30:00+08:00
+Scheduled task 'Send Email' for 2026-01-17T07:40:00+08:00
 APScheduler started
 ```
 
@@ -577,9 +577,9 @@ APScheduler started
 SCHEDULED TASK: Update - Starting
 ============================================================
 SCHEDULED TASK: Update - Completed successfully: {...}
-Advanced 'Update' trigger time to 2026-01-17T18:00:00-05:00
-Advanced 'Update Email' trigger time to 2026-01-17T18:30:00-05:00
-Advanced 'Send Email' trigger time to 2026-01-17T18:40:00-05:00
+Advanced 'Update' trigger time to 2026-01-18T07:00:00+08:00
+Advanced 'Update Email' trigger time to 2026-01-18T07:30:00+08:00
+Advanced 'Send Email' trigger time to 2026-01-18T07:40:00+08:00
 Schedule updated: all tasks disabled and trigger times advanced by 1 day
 ```
 

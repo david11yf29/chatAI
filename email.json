@@ -17,7 +17,7 @@
         "name": "Applied Optoelectronics, Inc.",
         "price": 39.26,
         "changePercent": 5.99,
-        "date": "2026-01-20T16:00:00-05:00",
+        "date": "2026-01-21T05:00:00+08:00",
         "news": "Applied Optoelectronics (AAOI) stock rose, driven by strong investor optimism surrounding the artificial intelligence boom and surging demand for data center components. The increase was largely fueled by news that the company received its first volume order for high-speed 800G transceivers from a major hyperscale customer. This key order prompted several analysts to reiterate \"buy\" ratings and raise their price targets, signaling confidence in the company's growth trajectory."
       },
       {
@@ -25,7 +25,7 @@
         "name": "Amazon.com, Inc.",
         "price": 231.0,
         "changePercent": -3.4,
-        "date": "2026-01-20T16:00:00-05:00",
+        "date": "2026-01-21T05:00:00+08:00",
         "news": "Amazon's stock fell 3.4% due to a tech sector downturn driven by investor anxiety over high valuations in artificial intelligence. This pullback was intensified by a downgrade from Rothschild & Co Redburn, which raised concerns about future growth at Amazon Web Services (AWS) and the profitability of its AI ventures."
       },
       {
@@ -33,7 +33,7 @@
         "name": "Tesla, Inc.",
         "price": 419.25,
         "changePercent": -4.17,
-        "date": "2026-01-20T16:00:00-05:00",
+        "date": "2026-01-21T05:00:00+08:00",
         "news": "Tesla's stock declined after Stifel analyst Stephen Gengaro lowered the price target, citing significant headwinds for the electric vehicle maker. The downgrade was based on the company's \"net favorability rating nearing all-time lows,\" which could hurt near-term sales, coupled with tumbling demand in Europe and mixed fourth-quarter financial results. CEO Elon Musk's political involvement was also noted as a factor contributing to the negative public perception."
       }
     ],
@@ -42,31 +42,31 @@
         "symbol": "AAOI",
         "price": 39.26,
         "diff": -15.94,
-        "date": "2026-01-20T16:00:00-05:00"
+        "date": "2026-01-21T05:00:00+08:00"
       },
       {
         "symbol": "MSFT",
         "price": 454.52,
         "diff": -1.38,
-        "date": "2026-01-20T16:00:00-05:00"
+        "date": "2026-01-21T05:00:00+08:00"
       },
       {
         "symbol": "META",
         "price": 604.12,
         "diff": -3.99,
-        "date": "2026-01-20T16:00:00-05:00"
+        "date": "2026-01-21T05:00:00+08:00"
       },
       {
         "symbol": "AMZN",
         "price": 231.0,
         "diff": -2.6,
-        "date": "2026-01-20T16:00:00-05:00"
+        "date": "2026-01-21T05:00:00+08:00"
       },
       {
         "symbol": "TSLA",
         "price": 419.25,
         "diff": -8.88,
-        "date": "2026-01-20T16:00:00-05:00"
+        "date": "2026-01-21T05:00:00+08:00"
       }
     ]
   }
