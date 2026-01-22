@@ -404,6 +404,66 @@ async def update_stocks(request: StocksUpdateRequest):
     return {"message": "Stocks updated successfully", "stocks": updated_stocks}
 
 
+@app.patch("/api/stocks/autosave")
+async def autosave_stocks(request: StocksUpdateRequest):
+    """Auto-save stock Symbol and Buy Price changes WITHOUT fetching prices.
+
+    This endpoint is called automatically when user edits fields in the frontend.
+    It preserves existing price data while updating only symbol and buyPrice.
+    The scheduled 'Update' task will later fetch fresh prices for these stocks.
+    """
+    logger.info(f"[autosave_stocks] Auto-saving {len(request.stocks)} stocks")
+
+    # Read existing data to preserve metadata and other fields
+    with open("stockapp.json", "r") as f:
+        existing_data = json.load(f)
+
+    # Build a map of existing stocks by index for preserving price data
+    existing_stocks = existing_data.get("stocks", [])
+
+    updated_stocks = []
+    for i, stock in enumerate(request.stocks):
+        stock_dict = stock.model_dump()
+        symbol = stock.symbol.upper().strip()
+        stock_dict["symbol"] = symbol
+
+        # Preserve existing price data if available (from previous updates)
+        if i < len(existing_stocks):
+            existing = existing_stocks[i]
+            # Keep price, changePercent, date, name if not provided or if symbol unchanged
+            if existing.get("symbol", "").upper() == symbol:
+                stock_dict["price"] = existing.get("price", 0)
+                stock_dict["changePercent"] = existing.get("changePercent", 0)
+                stock_dict["date"] = existing.get("date", "")
+                stock_dict["name"] = existing.get("name", symbol)
+            else:
+                # Symbol changed - reset price data, will be fetched by scheduled task
+                stock_dict["price"] = stock_dict.get("price", 0)
+                stock_dict["changePercent"] = stock_dict.get("changePercent", 0)
+                stock_dict["date"] = stock_dict.get("date", "")
+                stock_dict["name"] = symbol
+
+        # Calculate diff based on current price and buyPrice
+        price = stock_dict.get("price", 0)
+        buy_price = stock_dict.get("buyPrice", 0)
+        if price > 0:
+            diff = round(((buy_price - price) / price) * 100, 2)
+            stock_dict["diff"] = diff
+        else:
+            stock_dict["diff"] = 0
+
+        updated_stocks.append(stock_dict)
+        logger.info(f"[autosave_stocks] Saved {symbol} with buyPrice={stock_dict.get('buyPrice')}")
+
+    # Write to stockapp.json (SOURCE OF TRUTH)
+    existing_data["stocks"] = updated_stocks
+    with open("stockapp.json", "w") as f:
+        json.dump(existing_data, f, indent=2)
+
+    logger.info(f"[autosave_stocks] Auto-save completed for {len(updated_stocks)} stocks")
+    return {"message": "Stocks auto-saved successfully", "stocks": updated_stocks}
+
+
 def _perform_update_stocks() -> dict:
     """Core logic to update stock prices from yfinance.
 

@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-22 (migrated all timestamps from Eastern Time to Taiwan Time +08:00)
+> - **Last Updated:** 2026-01-22 (added auto-save feature for Symbol/Buy Price edits)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -64,7 +64,61 @@ This document describes the detailed workflow for each of the four main buttons 
 - Memory: New stock object added to `currentStocks` array
 - UI: Symbol input field receives focus
 - **No API call** - This is purely client-side
-- **No persistence** until "Update" button is clicked
+- **Auto-save on blur** - When user finishes editing a field, changes are auto-saved (see Auto-Save Feature below)
+
+---
+
+## Auto-Save Feature
+
+### Purpose
+Automatically saves Symbol and Buy Price changes when the user finishes editing a field (on blur event). This ensures the scheduled "Update" task picks up the latest user edits.
+
+### Implementation
+
+#### Frontend (`static/js/app.js`)
+- **Function:** `autoSaveStocks()` - Sends current stocks to auto-save endpoint
+- **Function:** `debouncedAutoSave()` - Debounces saves (500ms delay) to avoid excessive API calls
+- **Event Listeners:** `blur` events on `.symbol-input` and `.buy-price-input` fields
+
+#### Backend (`main.py`)
+- **Endpoint:** `PATCH /api/stocks/autosave`
+- **Function:** `autosave_stocks()` - Saves Symbol and Buy Price WITHOUT fetching prices from yfinance
+
+### Workflow Steps
+
+1. **User edits Symbol or Buy Price field**
+   - `input` event updates `currentStocks` array in memory
+
+2. **User clicks outside the field (blur event)**
+   - `blur` event triggers `debouncedAutoSave()`
+
+3. **After 500ms debounce delay**
+   - `autoSaveStocks()` sends `PATCH /api/stocks/autosave`
+   - Request body: `{ "stocks": currentStocks }`
+
+4. **Backend processes request**
+   - Reads existing `stockapp.json` to preserve price data
+   - Updates Symbol and Buy Price from request
+   - Preserves existing `price`, `changePercent`, `date`, `name` if symbol unchanged
+   - Recalculates `diff` based on current price and new buy price
+   - Writes to `stockapp.json`
+
+5. **Frontend receives response**
+   - Updates `currentStocks` with response data (preserves price info)
+
+### Key Behavior
+- **Preserves price data:** If the symbol hasn't changed, existing price/changePercent/date/name are preserved
+- **Resets price data:** If symbol changes, price data is reset (will be fetched by scheduled Update task)
+- **No loading overlay:** Auto-save happens silently in background
+- **Debounced:** Multiple rapid edits only trigger one save after 500ms of inactivity
+
+### Integration with Scheduled Tasks
+When the scheduled "Update" task runs:
+1. It reads `stockapp.json` which now contains the auto-saved Symbol/Buy Price
+2. Fetches fresh prices from yfinance for those symbols
+3. Writes updated prices back to `stockapp.json`
+
+This ensures user edits are picked up by scheduled tasks without requiring manual "Update" button click.
 
 ---
 
@@ -589,9 +643,10 @@ Schedule updated: all tasks disabled and trigger times advanced by 1 day
 
 ### Data Flow Overview
 
-| Button | Action | API Endpoint | DB Read | DB Write | External Services | Schedulable |
-|--------|--------|--------------|---------|----------|-------------------|-------------|
+| Button/Feature | Action | API Endpoint | DB Read | DB Write | External Services | Schedulable |
+|----------------|--------|--------------|---------|----------|-------------------|-------------|
 | **Add** | Add empty row | None | None | None | None | No |
+| **Auto-Save** | Save edits on blur | `PATCH /api/stocks/autosave` | stockapp.json | stockapp.json | None | No |
 | **Update** | Save & fetch prices | `PUT /api/stocks`, `GET /api/stocks` | stockapp.json | stockapp.json | yfinance | Yes |
 | **Update Email** | Generate news | `POST /api/update-email` | stockapp.json, email.json | email.json | OpenAI, Search API, News sites | Yes |
 | **Send Email** | Send email | `POST /api/send-test-email` | email.json | None | Resend | Yes |
