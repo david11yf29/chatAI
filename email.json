@@ -12,51 +12,45 @@
   "content": {
     "dailyPriceChange": [
       {
-        "symbol": "MU",
-        "name": "Micron Technology, Inc.",
-        "price": 389.11,
-        "changePercent": 6.61,
-        "date": "2026-01-22T05:00:00+08:00",
-        "news": "Micron Technology's stock surged 6.61% to close at $389.11 amid a severe memory chip shortage driven by exploding AI demand across sectors. CEO Sanjay Mehrotra emphasized memory as a \"key enabler of AI\" and a strategic asset, noting long lead times for new fabrication plants despite expansions like acquiring a Taiwanese site and $200 billion U.S. investments. The shortage has boosted prices and fully booked Micron's AI memory products through 2026, supporting strong momentum with the stock up 255.74% over the past year."
-      },
-      {
         "symbol": "SNDK",
         "name": "Sandisk Corporation",
         "price": 501.29,
         "changePercent": 10.63,
         "date": "2026-01-22T05:00:00+08:00",
-        "news": "**Sandisk Corporation (SNDK) stock surged 10.63% to $501.29, driven by its position as a leading beneficiary of the AI-driven NAND flash memory supercycle, with strong demand from data centers and complex AI workloads amid supply shortages.** **The article highlights Sandisk's technological advancements, including the BiCS8 node for scalability in edge and cloud AI applications and upcoming high-bandwidth flash (HBF) innovations, positioning it for outsized growth as data centers become the primary NAND demand driver.** **This momentum follows an 800%+ rise since its February 2025 spinoff from Western Digital, fueled by favorable pricing tailwinds and accelerating bit demand.**"
+        "news": "SNDK stock surged 10.63% to $501.29 amid explosive gains driven by its position as a leading beneficiary of the AI-driven NAND flash memory supercycle, with surging demand from data centers, edge computing, and complex AI workloads. The rally follows Sandisk's spinoff from Western Digital in February 2025, which has seen shares rise over 800% in the past year, fueled by the ramp-up of its advanced BiCS8 technology node addressing AI scalability needs and upcoming high-bandwidth flash innovations. Analysts highlight persistent NAND shortages, pricing tailwinds, and Sandisk's growing market share in enterprise SSDs as key factors positioning it for outsized growth despite Wall Street's underestimation."
+      },
+      {
+        "symbol": "MU",
+        "name": "Micron Technology, Inc.",
+        "price": 389.11,
+        "changePercent": 6.61,
+        "date": "2026-01-22T05:00:00+08:00",
+        "news": "Micron Technology's stock surged after the company announced a $1.8 billion deal to acquire a chip fabrication site in Taiwan from Powerchip Semiconductor. This strategic acquisition is intended to boost the production of DRAM memory chips. The move addresses the skyrocketing demand and pricing for memory chips, which are critical components for artificial intelligence (AI) data centers."
       }
     ],
     "needToDropUntilBuyPrice": [
       {
-        "symbol": "MU",
-        "price": 389.11,
-        "diff": -10.0,
-        "date": "2026-01-22T05:00:00+08:00"
-      },
-      {
         "symbol": "SNDK",
         "price": 501.29,
-        "diff": -10.0,
-        "date": "2026-01-22T05:00:00+08:00"
-      },
-      {
-        "symbol": "NVDA",
-        "price": 183.32,
-        "diff": -10.0,
-        "date": "2026-01-22T05:00:00+08:00"
-      },
-      {
-        "symbol": "AAOI",
-        "price": 38.38,
-        "diff": -10.01,
+        "diff": -20.21,
         "date": "2026-01-22T05:00:00+08:00"
       },
       {
         "symbol": "MSFT",
         "price": 444.11,
-        "diff": -10.0,
+        "diff": 1.33,
+        "date": "2026-01-22T05:00:00+08:00"
+      },
+      {
+        "symbol": "MU",
+        "price": 389.11,
+        "diff": -22.9,
+        "date": "2026-01-22T05:00:00+08:00"
+      },
+      {
+        "symbol": "AAOI",
+        "price": 38.38,
+        "diff": 759.82,
         "date": "2026-01-22T05:00:00+08:00"
       }
     ]
