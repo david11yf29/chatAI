@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-22 (added auto-save feature for Symbol/Buy Price edits)
+> - **Last Updated:** 2026-01-22 (auto-save now triggers on input, not just blur)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -64,7 +64,7 @@ This document describes the detailed workflow for each of the four main buttons 
 - Memory: New stock object added to `currentStocks` array
 - UI: Symbol input field receives focus
 - **No API call** - This is purely client-side
-- **Auto-save on blur** - When user finishes editing a field, changes are auto-saved (see Auto-Save Feature below)
+- **Auto-save on input** - As user types, changes are auto-saved after 500ms debounce (see Auto-Save Feature below)
 
 ---
 
@@ -78,7 +78,7 @@ Automatically saves Symbol and Buy Price changes when the user finishes editing 
 #### Frontend (`static/js/app.js`)
 - **Function:** `autoSaveStocks()` - Sends current stocks to auto-save endpoint
 - **Function:** `debouncedAutoSave()` - Debounces saves (500ms delay) to avoid excessive API calls
-- **Event Listeners:** `blur` events on `.symbol-input` and `.buy-price-input` fields
+- **Event Listeners:** `input` events on `.symbol-input` and `.buy-price-input` fields (saves as user types)
 
 #### Backend (`main.py`)
 - **Endpoint:** `PATCH /api/stocks/autosave`
@@ -88,11 +88,9 @@ Automatically saves Symbol and Buy Price changes when the user finishes editing 
 
 1. **User edits Symbol or Buy Price field**
    - `input` event updates `currentStocks` array in memory
+   - `input` event also triggers `debouncedAutoSave()`
 
-2. **User clicks outside the field (blur event)**
-   - `blur` event triggers `debouncedAutoSave()`
-
-3. **After 500ms debounce delay**
+2. **After 500ms of no typing (debounce delay)**
    - `autoSaveStocks()` sends `PATCH /api/stocks/autosave`
    - Request body: `{ "stocks": currentStocks }`
 
@@ -107,10 +105,11 @@ Automatically saves Symbol and Buy Price changes when the user finishes editing 
    - Updates `currentStocks` with response data (preserves price info)
 
 ### Key Behavior
+- **Saves as you type:** Auto-save triggers on every keystroke (debounced), not just when leaving the field
 - **Preserves price data:** If the symbol hasn't changed, existing price/changePercent/date/name are preserved
 - **Resets price data:** If symbol changes, price data is reset (will be fetched by scheduled Update task)
 - **No loading overlay:** Auto-save happens silently in background
-- **Debounced:** Multiple rapid edits only trigger one save after 500ms of inactivity
+- **Debounced:** Multiple rapid edits only trigger one save after 500ms of no typing
 
 ### Integration with Scheduled Tasks
 When the scheduled "Update" task runs:
