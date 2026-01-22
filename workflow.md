@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-22 (auto-save now triggers on input, not just blur)
+> - **Last Updated:** 2026-01-22 (Added SSE for real-time updates, removed trigger_time advancement)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -158,45 +158,63 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
    - **Headers:** `Content-Type: application/json`
    - **Body:** `{ "stocks": currentStocks }`
 
-#### Phase 3: Backend Processing (`main.py` lines 308-369)
+#### Phase 3: Backend Processing (`main.py` lines 339-440)
+
+**Two-Phase Save Approach:** Symbol/buyPrice are saved FIRST before yfinance calls, ensuring user edits are persisted even if yfinance fails partway through.
+
+##### Step 1: Preliminary Save (Symbol/BuyPrice)
 
 6. **Read Existing Data**
    - Loads current `stockapp.json` (source of truth)
    - Extracts existing stocks to compare
 
-7. **Process Each Stock**
-   - For each stock in the request (skips stocks with empty symbols):
+7. **Build Preliminary Stocks List**
+   - For each stock in the request:
+     - Normalize symbol to uppercase
+     - If symbol unchanged from existing data, preserve existing price data (price, changePercent, date, name, diff)
+     - If symbol changed or new stock, set defaults
 
-   8. **Fetch Live Price Data from yfinance**
-      - Creates ticker object: `yf.Ticker(symbol)`
-      - Retrieves company info: `longName`, `shortName`, or symbol fallback
+8. **Write Preliminary Save**
+   - Writes symbol/buyPrice to `stockapp.json` immediately
+   - **Benefit:** User edits are now persisted even if yfinance calls fail
 
-   9. **Get Historical Price Data**
-      - Fetches 2-day history: `ticker.history(period="2d")` (sufficient for previous day's close)
-      - Extracts last closing price from history
-      - Gets the market close time as ISO 8601 datetime with Taiwan timezone (e.g., "2026-01-17T05:00:00+08:00")
+##### Step 2: Fetch yfinance Data
 
-   10. **Calculate Daily Change Percent**
+9. **Process Each Stock**
+   - For each stock with a valid symbol:
+
+   10. **Fetch Live Price Data from yfinance**
+       - Creates ticker object: `yf.Ticker(symbol)`
+       - Retrieves company info: `longName`, `shortName`, or symbol fallback
+
+   11. **Get Historical Price Data**
+       - Fetches 2-day history: `ticker.history(period="2d")` (sufficient for previous day's close)
+       - Extracts last closing price from history
+       - Gets the market close time as ISO 8601 datetime with Taiwan timezone (e.g., "2026-01-17T05:00:00+08:00")
+
+   12. **Calculate Daily Change Percent**
        - Compares current close vs previous close
        - Formula: `((current - previous) / previous) * 100`
 
-11. **Set Default Buy Price (if not provided)**
+13. **Set Default Buy Price (if not provided)**
     - If `buyPrice` is 0 (user didn't input any value):
     - Formula: `buyPrice = price * 0.9`
     - Example: If price is $37.04, default buyPrice = $33.34
     - This gives a 10% discount target as the default buy price
 
-12. **Calculate Need to Drop Until Buy Price**
+14. **Calculate Need to Drop Until Buy Price**
     - For all stocks:
     - Formula: `diff = ((buyPrice - price) / price) * 100`
     - Negative diff = above buy price
     - Positive diff = below buy price (good opportunity)
 
-13. **Persist to Database**
-    - Writes updated stocks array to `stockapp.json`
+##### Step 3: Final Save
+
+15. **Persist to Database**
+    - Writes updated stocks array with prices to `stockapp.json`
     - Preserves other fields like `search`, `_metadata`
 
-14. **Return Response**
+16. **Return Response**
     - Returns success message with updated stocks array
 
 #### Phase 4: Frontend Updates
@@ -571,7 +589,6 @@ In addition to manual button clicks, the "Update", "Update Email", and "Send Ema
 - `scheduled_update_stocks()` - Wrapper that logs execution and advances schedule for Update task
 - `scheduled_update_email()` - Wrapper that logs execution for Update Email task
 - `scheduled_send_email()` - Wrapper that logs execution for Send Email task
-- `_advance_scheduled_tasks()` - Disables all tasks and advances trigger times by 1 day
 
 ### Lifecycle Events
 
@@ -597,12 +614,6 @@ In addition to manual button clicks, the "Update", "Update Email", and "Send Ema
    - Calls the core function (`_perform_update_stocks()`, `_perform_update_email()`, or `_perform_send_email()`)
    - Logs completion status
 
-3. **After Update Execution:**
-   - `_advance_scheduled_tasks()` is called (in `finally` block of `scheduled_update_stocks()`)
-   - Sets `enable: false` for all tasks (Update, Update Email, Send Email)
-   - Advances all `trigger_time` values by 1 day
-   - Writes updated schedule back to `schedule.json`
-
 ### Edge Case Handling
 
 | Scenario | Behavior |
@@ -611,7 +622,7 @@ In addition to manual button clicks, the "Update", "Update Email", and "Send Ema
 | `schedule.json` invalid JSON | Log error, continue without scheduling |
 | `trigger_time` in the past | Log warning, skip scheduling that task |
 | `enable: false` | Skip scheduling that task |
-| Task execution fails | Log error, still advance schedule |
+| Task execution fails | Log error, task does not retry |
 
 ### Log Messages
 
@@ -630,11 +641,43 @@ APScheduler started
 SCHEDULED TASK: Update - Starting
 ============================================================
 SCHEDULED TASK: Update - Completed successfully: {...}
-Advanced 'Update' trigger time to 2026-01-18T07:00:00+08:00
-Advanced 'Update Email' trigger time to 2026-01-18T07:30:00+08:00
-Advanced 'Send Email' trigger time to 2026-01-18T07:40:00+08:00
-Schedule updated: all tasks disabled and trigger times advanced by 1 day
 ```
+
+---
+
+## Real-Time Frontend Updates (SSE)
+
+The application uses Server-Sent Events (SSE) to push real-time updates from the backend to the frontend.
+
+### How It Works
+
+1. **Frontend connects on page load**
+   - `connectSSE()` in `app.js` establishes connection to `/api/events`
+   - Connection auto-reconnects on errors
+
+2. **Backend broadcasts events after task completion**
+   - `stocks-updated`: After scheduled/manual Update completes
+   - `email-updated`: After scheduled/manual Update Email completes
+   - `email-sent`: After scheduled/manual Send Email completes
+
+3. **Frontend reacts to events**
+   - On `stocks-updated`: Calls `fetchStocks()` to refresh UI with new data
+
+### SSE Endpoint
+
+- **URL:** `GET /api/events`
+- **Response:** `text/event-stream`
+- **Events:**
+  - `connected` - Initial connection acknowledgment
+  - `stocks-updated` - Stock prices updated
+  - `email-updated` - Email content generated
+  - `email-sent` - Email sent successfully
+
+### Key Behavior
+
+- Scheduled tasks automatically notify frontend when complete
+- Frontend refreshes stock data without manual page reload
+- Keepalive pings sent every 30 seconds to maintain connection
 
 ---
 
