@@ -1285,9 +1285,10 @@ def _advance_scheduled_tasks():
     """Advance trigger times by 1 day for all tasks and reschedule the jobs.
 
     After a scheduled task runs successfully, this function:
-    1. Sets all tasks to enable: false
-    2. Advances all trigger_time values by 1 day
-    3. Reschedules the jobs for the new times
+    1. Advances all trigger_time values by 1 day
+    2. Reschedules the jobs for the new times
+
+    Note: The 'enable' field is NOT modified - only users can change it manually.
     """
     try:
         # Read current schedule
@@ -1298,8 +1299,7 @@ def _advance_scheduled_tasks():
         for task_name in ["Update", "Update Email", "Send Email"]:
             if task_name in schedule_data:
                 task = schedule_data[task_name]
-                # Set enable to false
-                task["enable"] = False
+                # Note: 'enable' field is preserved - only users can change it
 
                 # Parse current trigger time and add 1 day
                 current_time = datetime.fromisoformat(task["trigger_time"])
@@ -1312,7 +1312,7 @@ def _advance_scheduled_tasks():
         with open("schedule.json", "w") as f:
             json.dump(schedule_data, f, indent=2)
 
-        logger.info("Schedule updated: all tasks disabled and trigger times advanced by 1 day")
+        logger.info("Schedule updated: trigger times advanced by 1 day")
 
     except Exception as e:
         logger.error(f"Error advancing scheduled tasks: {e}")
