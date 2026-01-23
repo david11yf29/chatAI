@@ -1146,6 +1146,61 @@ async def send_test_email():
     return result
 
 
+@app.get("/api/schedule-status")
+async def get_schedule_status():
+    """Check which tasks are scheduled in the future.
+
+    Returns:
+        dict: Individual status for each task:
+              - update: true/false (Update Tracker)
+              - updateEmail: true/false (Update News)
+              - sendEmail: true/false (Send Email)
+    """
+    try:
+        with open("schedule.json", "r") as f:
+            schedule_data = json.load(f)
+
+        now = datetime.now(ZoneInfo("Asia/Taipei"))
+
+        result = {
+            "update": False,
+            "updateEmail": False,
+            "sendEmail": False
+        }
+
+        # Check Update task
+        update_config = schedule_data.get("Update", {})
+        if update_config.get("enable", False):
+            trigger_time_str = update_config.get("trigger_time")
+            if trigger_time_str:
+                trigger_time = datetime.fromisoformat(trigger_time_str)
+                if trigger_time > now:
+                    result["update"] = True
+
+        # Check Update Email task
+        update_email_config = schedule_data.get("Update Email", {})
+        if update_email_config.get("enable", False):
+            trigger_time_str = update_email_config.get("trigger_time")
+            if trigger_time_str:
+                trigger_time = datetime.fromisoformat(trigger_time_str)
+                if trigger_time > now:
+                    result["updateEmail"] = True
+
+        # Check Send Email task
+        send_email_config = schedule_data.get("Send Email", {})
+        if send_email_config.get("enable", False):
+            trigger_time_str = send_email_config.get("trigger_time")
+            if trigger_time_str:
+                trigger_time = datetime.fromisoformat(trigger_time_str)
+                if trigger_time > now:
+                    result["sendEmail"] = True
+
+        return result
+    except Exception as e:
+        logger.error(f"Error checking schedule status: {e}")
+        return {"update": False, "updateEmail": False, "sendEmail": False}
+
+
 @app.post("/api/schedule")
 async def update_schedule(request: ScheduleRequest):
     """Update schedule.json with trigger times based on user input.

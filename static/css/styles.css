@@ -60,6 +60,45 @@ h1 {
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
 }
 
+.empty-rectangle {
+    display: flex;
+    width: 100px;
+    height: 33px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.rect-part {
+    flex: 1;
+    height: 100%;
+}
+
+/* Default: Light/faded colors (task not scheduled or already triggered) */
+.rect-blue {
+    background-color: rgba(0, 123, 255, 0.2);
+}
+
+.rect-teal {
+    background-color: rgba(23, 162, 184, 0.2);
+}
+
+.rect-orange {
+    background-color: rgba(255, 149, 0, 0.2);
+}
+
+/* Scheduled state: Solid colors (task scheduled and pending) */
+.rect-blue.scheduled {
+    background-color: #007bff;
+}
+
+.rect-teal.scheduled {
+    background-color: #17a2b8;
+}
+
+.rect-orange.scheduled {
+    background-color: #ff9500;
+}
+
 #schedule-btn {
     background-color: #6f42c1;
     color: #fff;

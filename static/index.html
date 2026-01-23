@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock Tracker</title>
-    <link rel="stylesheet" href="/static/css/styles.css?v=35">
+    <link rel="stylesheet" href="/static/css/styles.css?v=41">
 </head>
 <body>
     <div class="container">
@@ -28,6 +28,11 @@
         </table>
         <div class="actions-row">
             <input type="text" id="trigger-time-input" class="trigger-time-input" placeholder="2026-01-23T09:15:00+08:00">
+            <div class="empty-rectangle">
+                <div class="rect-part rect-blue"></div>
+                <div class="rect-part rect-teal"></div>
+                <div class="rect-part rect-orange"></div>
+            </div>
             <button id="schedule-btn">Schedule</button>
         </div>
         <div class="actions">
@@ -37,6 +42,6 @@
             <button id="send-email-btn">Send Email</button>
         </div>
     </div>
-    <script src="/static/js/app.js?v=19"></script>
+    <script src="/static/js/app.js?v=22"></script>
 </body>
 </html>
