@@ -95,8 +95,6 @@ async function autoSaveStocks() {
             // Update local state with response (preserves existing price data)
             if (data.stocks) {
                 currentStocks = data.stocks;
-                // Re-render to update Price and Change columns with preserved data
-                renderStocks(currentStocks);
             }
         } else {
             console.error('Failed to auto-save stocks');
@@ -106,12 +104,12 @@ async function autoSaveStocks() {
     }
 }
 
-// Debounced auto-save (waits 500ms after last change)
+// Debounced auto-save (waits 1500ms after last change)
 function debouncedAutoSave() {
     if (autoSaveTimeout) {
         clearTimeout(autoSaveTimeout);
     }
-    autoSaveTimeout = setTimeout(autoSaveStocks, 500);
+    autoSaveTimeout = setTimeout(autoSaveStocks, 1500);
 }
 
 function setLoading(isLoading) {
@@ -130,7 +128,7 @@ async function fetchStocks() {
         console.log('Response status:', response.status);
         const data = await response.json();
         console.log('Data received:', data);
-        if (data.stocks && data.stocks.length > 0) {
+        if (data.stocks) {
             currentStocks = data.stocks;
             renderStocks(currentStocks);
         } else {
@@ -181,6 +179,14 @@ function addStock() {
 function renderStocks(stocks) {
     const tbody = document.getElementById('stock-body');
     tbody.innerHTML = '';
+
+    // Handle empty stocks array
+    if (stocks.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td colspan="5" class="empty-message">Please hit Add Stock button to add at least 1 stock</td>`;
+        tbody.appendChild(row);
+        return;
+    }
 
     stocks.forEach((stock, index) => {
         const row = document.createElement('tr');
@@ -288,7 +294,7 @@ async function saveStocks() {
             setLoading(false);
             updateBtn.textContent = 'Saved!';
             setTimeout(() => {
-                updateBtn.textContent = 'Update';
+                updateBtn.textContent = 'Update Tracker';
                 updateBtn.disabled = false;
             }, 1500);
         } else {
@@ -299,7 +305,7 @@ async function saveStocks() {
         setLoading(false);
         updateBtn.textContent = 'Error!';
         setTimeout(() => {
-            updateBtn.textContent = 'Update';
+            updateBtn.textContent = 'Update Tracker';
             updateBtn.disabled = false;
         }, 1500);
     }
