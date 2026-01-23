@@ -6,40 +6,13 @@
   "search": "yahoo finance",
   "stocks": [
     {
-      "symbol": "MU",
-      "name": "Micron Technology, Inc.",
-      "price": 389.11,
-      "changePercent": 6.61,
-      "date": "2026-01-22T05:00:00+08:00",
-      "buyPrice": 350.2,
-      "diff": -10.0
-    },
-    {
       "symbol": "SNDK",
       "name": "Sandisk Corporation",
       "price": 501.29,
       "changePercent": 10.63,
       "date": "2026-01-22T05:00:00+08:00",
-      "buyPrice": 451.16,
-      "diff": -10.0
-    },
-    {
-      "symbol": "NVDA",
-      "name": "NVIDIA Corporation",
-      "price": 183.32,
-      "changePercent": 2.95,
-      "date": "2026-01-22T05:00:00+08:00",
-      "buyPrice": 164.99,
-      "diff": -10.0
-    },
-    {
-      "symbol": "AAOI",
-      "name": "Applied Optoelectronics, Inc.",
-      "price": 38.38,
-      "changePercent": -2.24,
-      "date": "2026-01-22T05:00:00+08:00",
-      "buyPrice": 34.54,
-      "diff": -10.01
+      "buyPrice": 400.0,
+      "diff": -20.21
     },
     {
       "symbol": "MSFT",
@@ -47,8 +20,26 @@
       "price": 444.11,
       "changePercent": -2.29,
       "date": "2026-01-22T05:00:00+08:00",
-      "buyPrice": 399.7,
-      "diff": -10.0
+      "buyPrice": 450.0,
+      "diff": 1.33
+    },
+    {
+      "symbol": "MU",
+      "name": "Micron Technology, Inc.",
+      "price": 389.11,
+      "changePercent": 6.61,
+      "date": "2026-01-22T05:00:00+08:00",
+      "buyPrice": 300.0,
+      "diff": -22.9
+    },
+    {
+      "symbol": "AAOI",
+      "name": "Applied Optoelectronics, Inc.",
+      "price": 38.38,
+      "changePercent": -2.24,
+      "date": "2026-01-22T05:00:00+08:00",
+      "buyPrice": 330.0,
+      "diff": 759.82
     }
   ]
 }

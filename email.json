@@ -1,63 +1,60 @@
 {
-  "from": "onboarding@resend.dev",
+  "from": "stock-tracker@ai-builders.space",
   "newsSearch": [
-    "https://www.investors.com/",
-    "https://seekingalpha.com/"
+    "https://finance.yahoo.com/",
+    "https://www.marketwatch.com/",
+    "https://www.nasdaq.com/",
+    "https://www.investing.com/"
   ],
   "time": "2026-01-19T08:00:00+08:00",
   "to": [
-    "david11yf29@gmail.com"
+    "david11yf29@gmail.com",
+    "chenchuchugrace@gmail.com"
   ],
   "subject": "Stocker Tracker Report",
   "content": {
     "dailyPriceChange": [
       {
-        "symbol": "MU",
-        "name": "Micron Technology, Inc.",
-        "price": 389.11,
-        "changePercent": 6.61,
-        "date": "2026-01-22T05:00:00+08:00",
-        "news": "Micron Technology's stock surged 6.61% to close at $389.11 amid a severe memory chip shortage driven by exploding AI demand across sectors. CEO Sanjay Mehrotra emphasized memory as a \"key enabler of AI\" and a strategic asset, noting long lead times for new fabrication plants despite expansions like acquiring a Taiwanese site and $200 billion U.S. investments. The shortage has boosted prices and fully booked Micron's AI memory products through 2026, supporting strong momentum with the stock up 255.74% over the past year."
+        "symbol": "LRCX",
+        "name": "Lam Research Corporation",
+        "price": 220.7,
+        "changePercent": -3.37,
+        "date": "2026-01-23T05:00:00+08:00",
+        "news": "Lam Research Corporation (LRCX) stock declined by 3.37% to $220.70 amid high trading volume of 11.46 million shares, despite a strong year-to-date gain of 33.42%. The drop occurred without specific news catalysts detailed in recent reports, though broader semiconductor sector pressures, including tariff concerns and analyst notes on moderating wafer fabrication equipment spending beyond 2025, may have contributed. The stock remains in focus ahead of its upcoming earnings on January 28, 2026, with positive analyst upgrades from firms like Zacks to \"Strong-Buy\" highlighting AI-driven demand potential."
       },
       {
-        "symbol": "SNDK",
-        "name": "Sandisk Corporation",
-        "price": 501.29,
-        "changePercent": 10.63,
-        "date": "2026-01-22T05:00:00+08:00",
-        "news": "**Sandisk Corporation (SNDK) stock surged 10.63% to $501.29, driven by its position as a leading beneficiary of the AI-driven NAND flash memory supercycle, with strong demand from data centers and complex AI workloads amid supply shortages.** **The article highlights Sandisk's technological advancements, including the BiCS8 node for scalability in edge and cloud AI applications and upcoming high-bandwidth flash (HBF) innovations, positioning it for outsized growth as data centers become the primary NAND demand driver.** **This momentum follows an 800%+ rise since its February 2025 spinoff from Western Digital, fueled by favorable pricing tailwinds and accelerating bit demand.**"
+        "symbol": "SNAP",
+        "name": "Snap Inc.",
+        "price": 7.66,
+        "changePercent": 3.93,
+        "date": "2026-01-23T05:00:00+08:00",
+        "news": "**Snap Inc. (SNAP) stock rose about 3.93% after settling a major lawsuit accusing Snapchat of addicting young users to social media, avoiding a high-profile \"bellwether\" trial that could have influenced similar cases against Meta, TikTok, and YouTube.** The amicable resolution, with undisclosed terms confirmed by Snap and the Social Media Victims Law Centre, eased investor concerns over legal risks and negative publicity. Shares initially jumped 4.5% before settling at $7.67, up 4% from the prior close, amid the company's ongoing volatility (22 moves >5% in the past year)."
       }
     ],
     "needToDropUntilBuyPrice": [
       {
-        "symbol": "MU",
-        "price": 389.11,
-        "diff": -10.0,
-        "date": "2026-01-22T05:00:00+08:00"
+        "symbol": "LRCX",
+        "price": 220.7,
+        "diff": -9.38,
+        "date": "2026-01-23T05:00:00+08:00"
       },
       {
-        "symbol": "SNDK",
-        "price": 501.29,
-        "diff": -10.0,
-        "date": "2026-01-22T05:00:00+08:00"
+        "symbol": "SNAP",
+        "price": 7.66,
+        "diff": -7.18,
+        "date": "2026-01-23T05:00:00+08:00"
       },
       {
-        "symbol": "NVDA",
-        "price": 183.32,
-        "diff": -10.0,
-        "date": "2026-01-22T05:00:00+08:00"
+        "symbol": "SOXL",
+        "price": 63.72,
+        "diff": -52.92,
+        "date": "2026-01-23T05:00:00+08:00"
       },
       {
-        "symbol": "AAOI",
-        "price": 38.38,
-        "diff": -10.01,
-        "date": "2026-01-22T05:00:00+08:00"
-      },
-      {
-        "symbol": "MSFT",
-        "price": 444.11,
-        "diff": -10.0,
-        "date": "2026-01-22T05:00:00+08:00"
+        "symbol": "IBIT",
+        "price": 50.67,
+        "diff": -11.19,
+        "date": "2026-01-23T05:00:00+08:00"
       }
     ]
   }

@@ -36,6 +36,50 @@ h1 {
     align-items: center;
 }
 
+.actions-row {
+    padding: 12px 20px;
+    background-color: #f9f9f9;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.trigger-time-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.trigger-time-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+}
+
+#schedule-btn {
+    background-color: #6f42c1;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    min-width: 80px;
+}
+
+#schedule-btn:hover {
+    background-color: #5a32a3;
+}
+
+#schedule-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
 #add-btn {
     background-color: #28a745;
     color: #fff;
@@ -117,33 +161,60 @@ h1 {
 table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 
-th, td {
+/* Header columns */
+thead th {
+    width: 25%;
     padding: 12px 20px;
     text-align: left;
     border-bottom: 1px solid #eee;
-}
-
-th {
     background-color: #f9f9f9;
     font-weight: 600;
     color: #666;
 }
 
-tr:hover {
-    background-color: #f5f5f5;
+/* Remove column - no space reserved */
+thead th.remove-col {
+    width: 0;
+    padding: 0;
+    border: none;
 }
 
-td:nth-child(2),
-td:nth-child(3),
-td:last-child {
+/* Symbol header - centered to match input */
+thead th:nth-child(2) {
+    padding-left: 32px;
+    padding-right: 8px;
+    text-align: center;
+}
+
+/* Right-align Price, Change, Buy Price headers (columns 3, 4, 5) */
+thead th:nth-child(3),
+thead th:nth-child(4) {
     text-align: right;
 }
 
-th:nth-child(2),
-th:nth-child(3),
-th:last-child {
+/* Buy Price header - aligned with input (account for input padding + border) */
+thead th:nth-child(5) {
+    text-align: right;
+    padding-right: 29px;
+}
+
+td {
+    padding: 12px 20px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+tr:hover {
+    background-color: #e3f2fd;
+}
+
+/* Right-align Price, Change, Buy Price data cells (skip remove-cell) */
+tbody td:nth-child(3),
+tbody td:nth-child(4),
+tbody td:nth-child(5) {
     text-align: right;
 }
 
@@ -165,6 +236,7 @@ th:last-child {
 
 .symbol-input {
     text-transform: uppercase;
+    text-align: center;
 }
 
 .buy-price-input {
@@ -182,16 +254,21 @@ th:last-child {
 }
 
 /* Remove button styles */
-.remove-col {
-    width: auto;
-    padding: 12px 20px;
+
+/* Remove cell - no space, positioned for absolute button */
+tbody .remove-cell {
+    width: 0;
+    padding: 0;
+    border: none;
+    position: relative;
 }
 
-.remove-cell {
-    width: 40px;
-    padding: 12px 8px;
+/* Row needs relative positioning for absolute button */
+tbody tr {
+    position: relative;
 }
 
+/* Remove button - hidden by default, absolutely positioned on hover */
 .remove-btn {
     background-color: #dc3545;
     color: #fff;
@@ -200,12 +277,33 @@ th:last-child {
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.75rem;
+    white-space: nowrap;
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
     opacity: 0;
+    pointer-events: none;
     transition: opacity 0.2s ease;
+    z-index: 10;
 }
 
-tr:hover .remove-btn {
+/* Show button on row hover */
+tbody tr:hover .remove-btn {
     opacity: 1;
+    pointer-events: auto;
+}
+
+/* Symbol cell - slightly indented for comfort, wider input area */
+tbody tr td:nth-child(2) {
+    padding-left: 32px;
+    padding-right: 8px;
+    transition: padding-left 0.2s ease;
+}
+
+/* Shift Symbol cell right on hover to make room for Remove button */
+tbody tr:hover td:nth-child(2) {
+    padding-left: 75px;
 }
 
 .remove-btn:hover {
@@ -246,4 +344,12 @@ tr:hover .remove-btn {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* Empty state message */
+.empty-message {
+    text-align: center !important;
+    color: #666;
+    font-style: italic;
+    padding: 24px 20px !important;
 }

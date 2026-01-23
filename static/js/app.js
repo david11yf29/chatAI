@@ -24,6 +24,8 @@ function connectSSE() {
 
     eventSource.addEventListener('connected', (e) => {
         console.log('SSE connected:', JSON.parse(e.data));
+        // Fetch latest stocks on reconnection to catch any missed events
+        fetchStocks();
     });
 
     eventSource.addEventListener('stocks-updated', (e) => {
@@ -93,8 +95,6 @@ async function autoSaveStocks() {
             // Update local state with response (preserves existing price data)
             if (data.stocks) {
                 currentStocks = data.stocks;
-                // Re-render to update Price and Change columns with preserved data
-                renderStocks(currentStocks);
             }
         } else {
             console.error('Failed to auto-save stocks');
@@ -104,12 +104,12 @@ async function autoSaveStocks() {
     }
 }
 
-// Debounced auto-save (waits 500ms after last change)
+// Debounced auto-save (waits 1500ms after last change)
 function debouncedAutoSave() {
     if (autoSaveTimeout) {
         clearTimeout(autoSaveTimeout);
     }
-    autoSaveTimeout = setTimeout(autoSaveStocks, 500);
+    autoSaveTimeout = setTimeout(autoSaveStocks, 1500);
 }
 
 function setLoading(isLoading) {
@@ -128,7 +128,7 @@ async function fetchStocks() {
         console.log('Response status:', response.status);
         const data = await response.json();
         console.log('Data received:', data);
-        if (data.stocks && data.stocks.length > 0) {
+        if (data.stocks) {
             currentStocks = data.stocks;
             renderStocks(currentStocks);
         } else {
@@ -179,6 +179,14 @@ function addStock() {
 function renderStocks(stocks) {
     const tbody = document.getElementById('stock-body');
     tbody.innerHTML = '';
+
+    // Handle empty stocks array
+    if (stocks.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td colspan="5" class="empty-message">Please hit Add Stock button to add at least 1 stock</td>`;
+        tbody.appendChild(row);
+        return;
+    }
 
     stocks.forEach((stock, index) => {
         const row = document.createElement('tr');
@@ -286,7 +294,7 @@ async function saveStocks() {
             setLoading(false);
             updateBtn.textContent = 'Saved!';
             setTimeout(() => {
-                updateBtn.textContent = 'Update';
+                updateBtn.textContent = 'Update Tracker';
                 updateBtn.disabled = false;
             }, 1500);
         } else {
@@ -297,7 +305,7 @@ async function saveStocks() {
         setLoading(false);
         updateBtn.textContent = 'Error!';
         setTimeout(() => {
-            updateBtn.textContent = 'Update';
+            updateBtn.textContent = 'Update Tracker';
             updateBtn.disabled = false;
         }, 1500);
     }
@@ -377,6 +385,52 @@ async function sendEmail() {
     }
 }
 
+async function updateSchedule() {
+    const scheduleBtn = document.getElementById('schedule-btn');
+    const triggerTimeInput = document.getElementById('trigger-time-input');
+    const triggerTime = triggerTimeInput.value.trim();
+
+    if (!triggerTime) {
+        alert('Please enter a trigger time (e.g., 2026-01-23T07:00:00+08:00)');
+        return;
+    }
+
+    scheduleBtn.disabled = true;
+    scheduleBtn.textContent = 'Scheduling...';
+
+    console.log('Updating schedule with trigger time:', triggerTime);
+
+    try {
+        const response = await fetch('/api/schedule', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ trigger_time: triggerTime })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('Schedule updated successfully:', data);
+            scheduleBtn.textContent = 'Scheduled!';
+            setTimeout(() => {
+                scheduleBtn.textContent = 'Schedule';
+                scheduleBtn.disabled = false;
+            }, 1500);
+        } else {
+            throw new Error(data.error || 'Failed to update schedule');
+        }
+    } catch (error) {
+        console.error('Error updating schedule:', error);
+        scheduleBtn.textContent = 'Error!';
+        setTimeout(() => {
+            scheduleBtn.textContent = 'Schedule';
+            scheduleBtn.disabled = false;
+        }, 1500);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     fetchStocks();
     connectSSE();  // Establish SSE connection for real-time updates
@@ -384,4 +438,5 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('update-btn').addEventListener('click', saveStocks);
     document.getElementById('update-email-btn').addEventListener('click', updateEmail);
     document.getElementById('send-email-btn').addEventListener('click', sendEmail);
+    document.getElementById('schedule-btn').addEventListener('click', updateSchedule);
 });

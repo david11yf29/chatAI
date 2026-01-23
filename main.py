@@ -18,6 +18,8 @@ import httpx
 from bs4 import BeautifulSoup
 import re
 import yfinance as yf
+import smtplib
+from email.message import EmailMessage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.date import DateTrigger
 
@@ -92,8 +94,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Use SUPER_MIND_API_KEY or fall back to AI_BUILDER_TOKEN (injected by platform)
+api_key = os.getenv("SUPER_MIND_API_KEY") or os.getenv("AI_BUILDER_TOKEN")
 client = OpenAI(
-    api_key=os.getenv("SUPER_MIND_API_KEY"),
+    api_key=api_key,
     base_url="https://space.ai-builders.com/backend/v1"
 )
 
@@ -110,7 +114,7 @@ def web_search(query: str) -> dict:
     """
     url = "https://space.ai-builders.com/backend/v1/search/"
     headers = {
-        "Authorization": f"Bearer {os.getenv('SUPER_MIND_API_KEY')}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
     payload = {
@@ -268,6 +272,9 @@ class StockUpdate(BaseModel):
 
 class StocksUpdateRequest(BaseModel):
     stocks: list[StockUpdate]
+
+class ScheduleRequest(BaseModel):
+    trigger_time: str  # ISO 8601 format, e.g., "2026-01-23T07:00:00+08:00"
 
 @app.get("/")
 async def root():
@@ -640,13 +647,25 @@ def get_stock_news(symbol: str, name: str, change_percent: float) -> str:
         logger.warning(f"[get_stock_news] Could not load newsSearch from email.json: {e}")
         news_sources = []
 
-    # Build the prompt with preferred sources
+    # Build the prompt with preferred sources and movement-specific keywords
     sources_instruction = ""
     if news_sources:
         sources_list = ", ".join(news_sources)
+
+        # Select movement-specific keywords based on direction
+        if change_percent > 0:
+            movement_keywords = "surge, spike, jump"
+        else:
+            movement_keywords = "plunge, dive, drop, tank"
+
         sources_instruction = f"""
 PREFERRED SOURCES: Search these sites first: {sources_list}
-Example search: "{symbol} stock news" or "site:investors.com {symbol}"
+
+SEARCH KEYWORDS (use these in your search):
+- "{symbol} after-hours news"
+- "{symbol} stock {movement_keywords}"
+- "{symbol} earnings report guidance outlook"
+- "{symbol} FDA approval acquisition deal news catalyst"
 """
 
     prompt = f"""Find news explaining why {symbol} ({name}) stock {direction} by {abs(change_percent):.2f}%.
@@ -1077,7 +1096,7 @@ def generate_stock_email_html():
 </html>'''
 
 async def _perform_send_email() -> dict:
-    """Core logic to send email using configuration from email.json via Resend.
+    """Core logic to send email using Gmail SMTP.
 
     Returns:
         dict: Result with status, recipients, and response details
@@ -1086,47 +1105,98 @@ async def _perform_send_email() -> dict:
     with open("email.json", "r") as f:
         email_config = json.load(f)
 
-    email_from = email_config.get("from", "onboarding@resend.dev")
     email_to = email_config.get("to", [])
     email_subject = email_config.get("subject", "Stocker Tracker Report")
 
     if not email_to:
         return {"status": "error", "message": "No email addresses found in email.json"}
 
-    resend_api_key = os.getenv("RESEND_API_KEY")
-    if not resend_api_key:
-        return {"status": "error", "message": "RESEND_API_KEY not configured"}
+    # Get Gmail credentials from environment
+    gmail_user = os.getenv("GMAIL_USER")
+    gmail_app_password = os.getenv("GMAIL_APP_PASSWORD")
+
+    if not gmail_user or not gmail_app_password:
+        return {"status": "error", "message": "GMAIL_USER or GMAIL_APP_PASSWORD not configured"}
 
     # Generate email HTML content
     email_html = generate_stock_email_html()
 
-    # Send via Resend API
-    async with httpx.AsyncClient() as http_client:
-        response = await http_client.post(
-            "https://api.resend.com/emails",
-            headers={
-                "Authorization": f"Bearer {resend_api_key}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "from": email_from,
-                "to": email_to,
-                "subject": email_subject,
-                "html": email_html
-            }
-        )
+    # Create email message
+    msg = EmailMessage()
+    msg["Subject"] = email_subject
+    msg["From"] = gmail_user
+    msg["To"] = ", ".join(email_to)
+    msg.set_content("Please view this email in an HTML-capable email client.")
+    msg.add_alternative(email_html, subtype="html")
 
-    if response.status_code == 200:
-        return {"status": "sent", "recipients": email_to, "response": response.json()}
-    else:
-        return {"status": "error", "code": response.status_code, "message": response.text}
+    # Send via Gmail SMTP
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+            smtp.login(gmail_user, gmail_app_password)
+            smtp.send_message(msg)
+        return {"status": "sent", "recipients": email_to}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 @app.post("/api/send-test-email")
 async def send_test_email():
-    """Send a test email using configuration from email.json via Resend."""
+    """Send a test email using configuration from email.json via Gmail SMTP."""
     result = await _perform_send_email()
     return result
+
+
+@app.post("/api/schedule")
+async def update_schedule(request: ScheduleRequest):
+    """Update schedule.json with trigger times based on user input.
+
+    - "Update": user's input time
+    - "Update Email": user's input time + 3 minutes
+    - "Send Email": user's input time + 10 minutes
+    """
+    try:
+        # Parse the input trigger time
+        base_time = datetime.fromisoformat(request.trigger_time)
+
+        # Calculate the three trigger times
+        update_time = base_time
+        update_email_time = base_time + timedelta(minutes=3)
+        send_email_time = base_time + timedelta(minutes=10)
+
+        # Read existing schedule.json to preserve other fields
+        with open("schedule.json", "r") as f:
+            schedule_data = json.load(f)
+
+        # Update the trigger times (preserve enable flags)
+        schedule_data["Update"]["trigger_time"] = update_time.isoformat()
+        schedule_data["Update Email"]["trigger_time"] = update_email_time.isoformat()
+        schedule_data["Send Email"]["trigger_time"] = send_email_time.isoformat()
+
+        # Write back to schedule.json
+        with open("schedule.json", "w") as f:
+            json.dump(schedule_data, f, indent=2)
+
+        logger.info(f"Schedule updated - Update: {update_time.isoformat()}, "
+                   f"Update Email: {update_email_time.isoformat()}, "
+                   f"Send Email: {send_email_time.isoformat()}")
+
+        # Re-setup scheduled tasks with new times
+        setup_scheduled_tasks()
+
+        return {
+            "success": True,
+            "schedule": {
+                "Update": update_time.isoformat(),
+                "Update Email": update_email_time.isoformat(),
+                "Send Email": send_email_time.isoformat()
+            }
+        }
+    except ValueError as e:
+        logger.error(f"Invalid trigger_time format: {e}")
+        return {"success": False, "error": f"Invalid time format: {str(e)}"}
+    except Exception as e:
+        logger.error(f"Error updating schedule: {e}")
+        return {"success": False, "error": str(e)}
 
 
 @app.get("/api/events")
@@ -1438,8 +1508,21 @@ async def scheduled_update_stocks():
 
 
 def setup_scheduled_tasks():
-    """Read schedule.json and schedule jobs for enabled tasks."""
+    """Read schedule.json and schedule jobs for enabled tasks.
+
+    This function removes all existing scheduled jobs and re-adds them based on
+    the current schedule.json configuration. This allows dynamic rescheduling
+    without server restart.
+    """
     logger.info("Setting up scheduled tasks from schedule.json...")
+
+    # Remove all existing scheduled jobs to allow clean rescheduling
+    job_ids = ["update_stocks_scheduled", "update_email_scheduled", "send_email_scheduled"]
+    for job_id in job_ids:
+        existing_job = scheduler.get_job(job_id)
+        if existing_job:
+            scheduler.remove_job(job_id)
+            logger.info(f"Removed existing scheduled job: {job_id}")
 
     try:
         with open("schedule.json", "r") as f:
@@ -1509,6 +1592,15 @@ def setup_scheduled_tasks():
                 logger.warning(f"Skipping 'Send Email' - trigger time {trigger_time_str} has already passed")
     else:
         logger.info("'Send Email' task is disabled in schedule.json")
+
+    # Log summary of all scheduled jobs
+    scheduled_jobs = scheduler.get_jobs()
+    if scheduled_jobs:
+        logger.info(f"Total scheduled jobs: {len(scheduled_jobs)}")
+        for job in scheduled_jobs:
+            logger.info(f"  - Job '{job.id}' scheduled for {job.next_run_time}")
+    else:
+        logger.info("No jobs currently scheduled")
 
 
 @app.on_event("startup")
