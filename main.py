@@ -269,6 +269,9 @@ class StockUpdate(BaseModel):
 class StocksUpdateRequest(BaseModel):
     stocks: list[StockUpdate]
 
+class ScheduleRequest(BaseModel):
+    trigger_time: str  # ISO 8601 format, e.g., "2026-01-23T07:00:00+08:00"
+
 @app.get("/")
 async def root():
     return FileResponse("static/index.html")
@@ -1127,6 +1130,59 @@ async def send_test_email():
     """Send a test email using configuration from email.json via Resend."""
     result = await _perform_send_email()
     return result
+
+
+@app.post("/api/schedule")
+async def update_schedule(request: ScheduleRequest):
+    """Update schedule.json with trigger times based on user input.
+
+    - "Update": user's input time
+    - "Update Email": user's input time + 3 minutes
+    - "Send Email": user's input time + 10 minutes
+    """
+    try:
+        # Parse the input trigger time
+        base_time = datetime.fromisoformat(request.trigger_time)
+
+        # Calculate the three trigger times
+        update_time = base_time
+        update_email_time = base_time + timedelta(minutes=3)
+        send_email_time = base_time + timedelta(minutes=10)
+
+        # Read existing schedule.json to preserve other fields
+        with open("schedule.json", "r") as f:
+            schedule_data = json.load(f)
+
+        # Update the trigger times (preserve enable flags)
+        schedule_data["Update"]["trigger_time"] = update_time.isoformat()
+        schedule_data["Update Email"]["trigger_time"] = update_email_time.isoformat()
+        schedule_data["Send Email"]["trigger_time"] = send_email_time.isoformat()
+
+        # Write back to schedule.json
+        with open("schedule.json", "w") as f:
+            json.dump(schedule_data, f, indent=2)
+
+        logger.info(f"Schedule updated - Update: {update_time.isoformat()}, "
+                   f"Update Email: {update_email_time.isoformat()}, "
+                   f"Send Email: {send_email_time.isoformat()}")
+
+        # Re-setup scheduled tasks with new times
+        setup_scheduled_tasks()
+
+        return {
+            "success": True,
+            "schedule": {
+                "Update": update_time.isoformat(),
+                "Update Email": update_email_time.isoformat(),
+                "Send Email": send_email_time.isoformat()
+            }
+        }
+    except ValueError as e:
+        logger.error(f"Invalid trigger_time format: {e}")
+        return {"success": False, "error": f"Invalid time format: {str(e)}"}
+    except Exception as e:
+        logger.error(f"Error updating schedule: {e}")
+        return {"success": False, "error": str(e)}
 
 
 @app.get("/api/events")
