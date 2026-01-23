@@ -207,7 +207,7 @@ function renderStocks(stocks) {
         }
 
         row.innerHTML = `
-            <td class="remove-cell"><button class="remove-btn" data-symbol="${stock.symbol}">Remove</button></td>
+            <td class="remove-cell"><button class="remove-btn" data-symbol="${stock.symbol}">&times;</button></td>
             <td><input type="text" class="editable-input symbol-input" data-index="${index}" value="${stock.symbol}"></td>
             <td>$${stock.price.toFixed(2)}</td>
             <td class="${changeClass}">${changeDisplay}</td>
