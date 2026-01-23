@@ -36,6 +36,50 @@ h1 {
     align-items: center;
 }
 
+.actions-row {
+    padding: 12px 20px;
+    background-color: #f9f9f9;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.trigger-time-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.trigger-time-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+}
+
+#schedule-btn {
+    background-color: #6f42c1;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    min-width: 80px;
+}
+
+#schedule-btn:hover {
+    background-color: #5a32a3;
+}
+
+#schedule-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
 #add-btn {
     background-color: #28a745;
     color: #fff;
