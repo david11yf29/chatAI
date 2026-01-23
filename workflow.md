@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-22 (Fixed: SSE reconnection now fetches latest stocks to catch missed events)
+> - **Last Updated:** 2026-01-23 (Migrated email sending from Resend API to Gmail SMTP)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -452,8 +452,8 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
    - Checks that recipient list is not empty
    - Uses default sender if not configured
 
-8. **Verify API Credentials**
-   - Checks for `RESEND_API_KEY` in environment variables
+8. **Verify Gmail Credentials**
+   - Checks for `GMAIL_USER` and `GMAIL_APP_PASSWORD` in environment variables
    - Fails fast if credentials missing
 
 9. **Generate Email HTML (`generate_stock_email_html()` function, lines 739-916)**
@@ -492,23 +492,17 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
       - Uses inline CSS for email client compatibility
       - Responsive design for mobile devices
 
-10. **Send via Resend API**
-    - **Endpoint:** `https://api.resend.com/emails`
-    - **Method:** POST
-    - **Headers:** Authorization with Bearer token
-    - **Payload:**
-      ```json
-      {
-          "from": "sender@example.com",
-          "to": ["recipient1@example.com", "recipient2@example.com"],
-          "subject": "Stock Tracker Report",
-          "html": "<full HTML email content>"
-      }
-      ```
+10. **Send via Gmail SMTP**
+    - **Server:** `smtp.gmail.com:465` (SSL)
+    - **Authentication:** Gmail App Password
+    - **Process:**
+      - Create EmailMessage with subject, from (GMAIL_USER), to (comma-joined recipients)
+      - Set plain text fallback and HTML content
+      - Connect via SMTP_SSL and send message
 
 11. **Return Response**
-    - On success: Returns status with recipients and Resend response
-    - On error: Returns error details with status code
+    - On success: Returns status with recipients
+    - On error: Returns error message from SMTP exception
 
 #### Phase 4: Success Feedback
 
@@ -529,9 +523,9 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
 1. `POST /api/send-test-email` - Triggers email sending
 
 ### External Services
-- **Resend Email Service** (`https://api.resend.com/emails`)
-  - Requires: `RESEND_API_KEY` environment variable
-  - Sends formatted HTML email to configured recipients
+- **Gmail SMTP** (`smtp.gmail.com:465`)
+  - Requires: `GMAIL_USER` and `GMAIL_APP_PASSWORD` environment variables
+  - Sends formatted HTML email to configured recipients via SSL connection
 
 ### Database Operations
 - **Read:** `email.json` (configuration and content)
@@ -692,7 +686,7 @@ The application uses Server-Sent Events (SSE) to push real-time updates from the
 | **Auto-Save** | Save edits on blur | `PATCH /api/stocks/autosave` | stockapp.json | stockapp.json | None | No |
 | **Update** | Save & fetch prices | `PUT /api/stocks`, `GET /api/stocks` | stockapp.json | stockapp.json | yfinance | Yes |
 | **Update Email** | Generate news | `POST /api/update-email` | stockapp.json, email.json | email.json | OpenAI, Search API, News sites | Yes |
-| **Send Email** | Send email | `POST /api/send-test-email` | email.json | None | Resend | Yes |
+| **Send Email** | Send email | `POST /api/send-test-email` | email.json | None | Gmail SMTP | Yes |
 
 ### Data Files
 - **stockapp.json** - Source of truth for stock portfolio
@@ -701,7 +695,8 @@ The application uses Server-Sent Events (SSE) to push real-time updates from the
 
 ### Environment Variables Required
 - `SUPER_MIND_API_KEY` - For AI-powered news generation
-- `RESEND_API_KEY` - For email sending via Resend
+- `GMAIL_USER` - Gmail email address for sending emails
+- `GMAIL_APP_PASSWORD` - Gmail App Password (16-character code from Google Account settings)
 
 ### Common UI Pattern
 All async buttons follow this pattern:

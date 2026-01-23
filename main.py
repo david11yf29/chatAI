@@ -18,6 +18,8 @@ import httpx
 from bs4 import BeautifulSoup
 import re
 import yfinance as yf
+import smtplib
+from email.message import EmailMessage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.date import DateTrigger
 
@@ -1094,7 +1096,7 @@ def generate_stock_email_html():
 </html>'''
 
 async def _perform_send_email() -> dict:
-    """Core logic to send email using configuration from email.json via Resend.
+    """Core logic to send email using Gmail SMTP.
 
     Returns:
         dict: Result with status, recipients, and response details
@@ -1103,45 +1105,43 @@ async def _perform_send_email() -> dict:
     with open("email.json", "r") as f:
         email_config = json.load(f)
 
-    email_from = email_config.get("from", "onboarding@resend.dev")
     email_to = email_config.get("to", [])
     email_subject = email_config.get("subject", "Stocker Tracker Report")
 
     if not email_to:
         return {"status": "error", "message": "No email addresses found in email.json"}
 
-    resend_api_key = os.getenv("RESEND_API_KEY")
-    if not resend_api_key:
-        return {"status": "error", "message": "RESEND_API_KEY not configured"}
+    # Get Gmail credentials from environment
+    gmail_user = os.getenv("GMAIL_USER")
+    gmail_app_password = os.getenv("GMAIL_APP_PASSWORD")
+
+    if not gmail_user or not gmail_app_password:
+        return {"status": "error", "message": "GMAIL_USER or GMAIL_APP_PASSWORD not configured"}
 
     # Generate email HTML content
     email_html = generate_stock_email_html()
 
-    # Send via Resend API
-    async with httpx.AsyncClient() as http_client:
-        response = await http_client.post(
-            "https://api.resend.com/emails",
-            headers={
-                "Authorization": f"Bearer {resend_api_key}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "from": email_from,
-                "to": email_to,
-                "subject": email_subject,
-                "html": email_html
-            }
-        )
+    # Create email message
+    msg = EmailMessage()
+    msg["Subject"] = email_subject
+    msg["From"] = gmail_user
+    msg["To"] = ", ".join(email_to)
+    msg.set_content("Please view this email in an HTML-capable email client.")
+    msg.add_alternative(email_html, subtype="html")
 
-    if response.status_code == 200:
-        return {"status": "sent", "recipients": email_to, "response": response.json()}
-    else:
-        return {"status": "error", "code": response.status_code, "message": response.text}
+    # Send via Gmail SMTP
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+            smtp.login(gmail_user, gmail_app_password)
+            smtp.send_message(msg)
+        return {"status": "sent", "recipients": email_to}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 @app.post("/api/send-test-email")
 async def send_test_email():
-    """Send a test email using configuration from email.json via Resend."""
+    """Send a test email using configuration from email.json via Gmail SMTP."""
     result = await _perform_send_email()
     return result
 

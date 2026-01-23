@@ -1,5 +1,5 @@
 {
-  "from": "onboarding@resend.dev",
+  "from": "stock-tracker@ai-builders.space",
   "newsSearch": [
     "https://finance.yahoo.com/",
     "https://www.marketwatch.com/",
@@ -8,51 +8,52 @@
   ],
   "time": "2026-01-19T08:00:00+08:00",
   "to": [
-    "david11yf29@gmail.com"
+    "david11yf29@gmail.com",
+    "chenchuchugrace@gmail.com"
   ],
   "subject": "Stocker Tracker Report",
   "content": {
     "dailyPriceChange": [
       {
-        "symbol": "META",
-        "name": "Meta Platforms, Inc.",
-        "price": 647.63,
-        "changePercent": 5.66,
+        "symbol": "LRCX",
+        "name": "Lam Research Corporation",
+        "price": 220.7,
+        "changePercent": -3.37,
         "date": "2026-01-23T05:00:00+08:00",
-        "news": "Meta Platforms (META) stock rallied over 5% following a bullish note from Jefferies analyst Brent Thill, who reiterated a Buy rating and $910 price target, implying 45% upside, as the stock trades at a discount to peers like Alphabet after recent underperformance. Thill highlighted Meta's attractive valuation at 28.5 times trailing earnings\u2014the cheapest among Magnificent Seven stocks\u2014strong core ad business growth from AI tools, and new monetization from Threads (now 400M monthly users with global ad rollout) and WhatsApp. Investors anticipate AI investments will yield returns in 2026, ahead of Q4 earnings on January 28."
+        "news": "Lam Research Corporation (LRCX) stock declined by 3.37% to $220.70 amid high trading volume of 11.46 million shares, despite a strong year-to-date gain of 33.42%. The drop occurred without specific news catalysts detailed in recent reports, though broader semiconductor sector pressures, including tariff concerns and analyst notes on moderating wafer fabrication equipment spending beyond 2025, may have contributed. The stock remains in focus ahead of its upcoming earnings on January 28, 2026, with positive analyst upgrades from firms like Zacks to \"Strong-Buy\" highlighting AI-driven demand potential."
       },
       {
-        "symbol": "TSLA",
-        "name": "Tesla, Inc.",
-        "price": 449.36,
-        "changePercent": 4.15,
+        "symbol": "SNAP",
+        "name": "Snap Inc.",
+        "price": 7.66,
+        "changePercent": 3.93,
         "date": "2026-01-23T05:00:00+08:00",
-        "news": "thought\nI need to synthesize the gathered information to explain why Tesla's stock (TSLA) increased by 4.15%.\n1.  **Identify the core reason:** The primary catalyst identified across multiple sources (Yahoo Finance, Investors.com, TipRanks) is the news about Tesla's Robotaxi service.\n2.  **Elaborate on the news:** CEO Elon Musk announced that Tesla has started offering public Robotaxi rides in Austin without a human safety monitor in the vehicle. This is a significant milestone for the company's autonomous driving and Full Self-Driving (FSD) technology.\n3.  **Connect news to stock movement:** This development signals tangible progress in Tesla's long-promised autonomous driving ambitions, a key part of its future valuation for many investors. The news directly caused the stock to jump more than 4% during the trading day.\n4.  **Mention secondary factors:** One article from Yahoo Finance also noted a broader market rally due to easing trade tensions, which created positive sentiment for equities in general. While the Robotaxi news was the specific catalyst for TSLA's outsized move, the market environment was also favorable.\n*   **Sentence 1:** State the main news: Tesla's stock surged after CEO Elon Musk announced the company has begun offering public Robotaxi rides in Austin without a human safety monitor.\n*   **Sentence 2:** Explain the significance: This marks a major milestone in the development of its autonomous driving technology and is seen by investors as a critical step toward launching a widespread, fully driverless ride-hailing network. This tangible progress on a long-term goal boosted investor confidence and drove the shares higher.Tesla's stock increased after CEO Elon Musk announced a significant milestone for its autonomous driving ambitions. The company has officially started offering public Robotaxi rides in Austin, Texas, without a human safety monitor in the vehicle. This move demonstrates tangible progress toward launching a fully autonomous ride-hailing network, a key future catalyst that bolstered investor confidence and drove the share price up."
+        "news": "**Snap Inc. (SNAP) stock rose about 3.93% after settling a major lawsuit accusing Snapchat of addicting young users to social media, avoiding a high-profile \"bellwether\" trial that could have influenced similar cases against Meta, TikTok, and YouTube.** The amicable resolution, with undisclosed terms confirmed by Snap and the Social Media Victims Law Centre, eased investor concerns over legal risks and negative publicity. Shares initially jumped 4.5% before settling at $7.67, up 4% from the prior close, amid the company's ongoing volatility (22 moves >5% in the past year)."
       }
     ],
     "needToDropUntilBuyPrice": [
       {
-        "symbol": "META",
-        "price": 647.63,
-        "diff": -8.9,
+        "symbol": "LRCX",
+        "price": 220.7,
+        "diff": -9.38,
         "date": "2026-01-23T05:00:00+08:00"
       },
       {
-        "symbol": "IBIT",
-        "price": 50.67,
-        "diff": -11.19,
-        "date": "2026-01-23T05:00:00+08:00"
-      },
-      {
-        "symbol": "TSLA",
-        "price": 449.36,
-        "diff": -10.98,
+        "symbol": "SNAP",
+        "price": 7.66,
+        "diff": -7.18,
         "date": "2026-01-23T05:00:00+08:00"
       },
       {
         "symbol": "SOXL",
         "price": 63.72,
         "diff": -52.92,
+        "date": "2026-01-23T05:00:00+08:00"
+      },
+      {
+        "symbol": "IBIT",
+        "price": 50.67,
+        "diff": -11.19,
         "date": "2026-01-23T05:00:00+08:00"
       }
     ]
