@@ -32,14 +32,20 @@ function connectSSE() {
         console.log('SSE: stocks-updated event received', JSON.parse(e.data));
         // Refresh the UI with latest stock data
         fetchStocks();
+        // Re-check schedule status to update rectangle indicator
+        checkScheduleStatus();
     });
 
     eventSource.addEventListener('email-updated', (e) => {
         console.log('SSE: email-updated event received', JSON.parse(e.data));
+        // Re-check schedule status to update rectangle indicator
+        checkScheduleStatus();
     });
 
     eventSource.addEventListener('email-sent', (e) => {
         console.log('SSE: email-sent event received', JSON.parse(e.data));
+        // Re-check schedule status to update rectangle indicator
+        checkScheduleStatus();
     });
 
     eventSource.onerror = (e) => {
@@ -385,6 +391,38 @@ async function sendEmail() {
     }
 }
 
+async function checkScheduleStatus() {
+    try {
+        const response = await fetch('/api/schedule-status');
+        const data = await response.json();
+
+        const rectBlue = document.querySelector('.rect-blue');
+        const rectTeal = document.querySelector('.rect-teal');
+        const rectOrange = document.querySelector('.rect-orange');
+
+        // Update each rectangle part based on its task status
+        if (data.update) {
+            rectBlue.classList.add('scheduled');
+        } else {
+            rectBlue.classList.remove('scheduled');
+        }
+
+        if (data.updateEmail) {
+            rectTeal.classList.add('scheduled');
+        } else {
+            rectTeal.classList.remove('scheduled');
+        }
+
+        if (data.sendEmail) {
+            rectOrange.classList.add('scheduled');
+        } else {
+            rectOrange.classList.remove('scheduled');
+        }
+    } catch (error) {
+        console.error('Error checking schedule status:', error);
+    }
+}
+
 async function updateSchedule() {
     const scheduleBtn = document.getElementById('schedule-btn');
     const triggerTimeInput = document.getElementById('trigger-time-input');
@@ -413,6 +451,10 @@ async function updateSchedule() {
 
         if (data.success) {
             console.log('Schedule updated successfully:', data);
+            // Add scheduled class to all rectangle parts
+            document.querySelector('.rect-blue').classList.add('scheduled');
+            document.querySelector('.rect-teal').classList.add('scheduled');
+            document.querySelector('.rect-orange').classList.add('scheduled');
             scheduleBtn.textContent = 'Scheduled!';
             setTimeout(() => {
                 scheduleBtn.textContent = 'Schedule';
@@ -434,6 +476,7 @@ async function updateSchedule() {
 document.addEventListener('DOMContentLoaded', () => {
     fetchStocks();
     connectSSE();  // Establish SSE connection for real-time updates
+    checkScheduleStatus();  // Check if tasks are scheduled and update rectangle indicator
     document.getElementById('add-btn').addEventListener('click', addStock);
     document.getElementById('update-btn').addEventListener('click', saveStocks);
     document.getElementById('update-email-btn').addEventListener('click', updateEmail);
