@@ -379,6 +379,52 @@ async function sendEmail() {
     }
 }
 
+async function updateSchedule() {
+    const scheduleBtn = document.getElementById('schedule-btn');
+    const triggerTimeInput = document.getElementById('trigger-time-input');
+    const triggerTime = triggerTimeInput.value.trim();
+
+    if (!triggerTime) {
+        alert('Please enter a trigger time (e.g., 2026-01-23T07:00:00+08:00)');
+        return;
+    }
+
+    scheduleBtn.disabled = true;
+    scheduleBtn.textContent = 'Scheduling...';
+
+    console.log('Updating schedule with trigger time:', triggerTime);
+
+    try {
+        const response = await fetch('/api/schedule', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ trigger_time: triggerTime })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('Schedule updated successfully:', data);
+            scheduleBtn.textContent = 'Scheduled!';
+            setTimeout(() => {
+                scheduleBtn.textContent = 'Schedule';
+                scheduleBtn.disabled = false;
+            }, 1500);
+        } else {
+            throw new Error(data.error || 'Failed to update schedule');
+        }
+    } catch (error) {
+        console.error('Error updating schedule:', error);
+        scheduleBtn.textContent = 'Error!';
+        setTimeout(() => {
+            scheduleBtn.textContent = 'Schedule';
+            scheduleBtn.disabled = false;
+        }, 1500);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     fetchStocks();
     connectSSE();  // Establish SSE connection for real-time updates
@@ -386,4 +432,5 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('update-btn').addEventListener('click', saveStocks);
     document.getElementById('update-email-btn').addEventListener('click', updateEmail);
     document.getElementById('send-email-btn').addEventListener('click', sendEmail);
+    document.getElementById('schedule-btn').addEventListener('click', updateSchedule);
 });
