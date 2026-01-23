@@ -92,8 +92,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Use SUPER_MIND_API_KEY or fall back to AI_BUILDER_TOKEN (injected by platform)
+api_key = os.getenv("SUPER_MIND_API_KEY") or os.getenv("AI_BUILDER_TOKEN")
 client = OpenAI(
-    api_key=os.getenv("SUPER_MIND_API_KEY"),
+    api_key=api_key,
     base_url="https://space.ai-builders.com/backend/v1"
 )
 
@@ -110,7 +112,7 @@ def web_search(query: str) -> dict:
     """
     url = "https://space.ai-builders.com/backend/v1/search/"
     headers = {
-        "Authorization": f"Bearer {os.getenv('SUPER_MIND_API_KEY')}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
     payload = {
