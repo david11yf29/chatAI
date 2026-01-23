@@ -643,13 +643,25 @@ def get_stock_news(symbol: str, name: str, change_percent: float) -> str:
         logger.warning(f"[get_stock_news] Could not load newsSearch from email.json: {e}")
         news_sources = []
 
-    # Build the prompt with preferred sources
+    # Build the prompt with preferred sources and movement-specific keywords
     sources_instruction = ""
     if news_sources:
         sources_list = ", ".join(news_sources)
+
+        # Select movement-specific keywords based on direction
+        if change_percent > 0:
+            movement_keywords = "surge, spike, jump"
+        else:
+            movement_keywords = "plunge, dive, drop, tank"
+
         sources_instruction = f"""
 PREFERRED SOURCES: Search these sites first: {sources_list}
-Example search: "{symbol} stock news" or "site:investors.com {symbol}"
+
+SEARCH KEYWORDS (use these in your search):
+- "{symbol} after-hours news"
+- "{symbol} stock {movement_keywords}"
+- "{symbol} earnings report guidance outlook"
+- "{symbol} FDA approval acquisition deal news catalyst"
 """
 
     prompt = f"""Find news explaining why {symbol} ({name}) stock {direction} by {abs(change_percent):.2f}%.

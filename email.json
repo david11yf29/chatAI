@@ -1,8 +1,10 @@
 {
   "from": "onboarding@resend.dev",
   "newsSearch": [
-    "https://www.investors.com/",
-    "https://seekingalpha.com/"
+    "https://finance.yahoo.com/",
+    "https://www.marketwatch.com/",
+    "https://www.nasdaq.com/",
+    "https://www.investing.com/"
   ],
   "time": "2026-01-19T08:00:00+08:00",
   "to": [
@@ -12,46 +14,46 @@
   "content": {
     "dailyPriceChange": [
       {
-        "symbol": "SNDK",
-        "name": "Sandisk Corporation",
-        "price": 501.29,
-        "changePercent": 10.63,
-        "date": "2026-01-22T05:00:00+08:00",
-        "news": "SNDK stock surged 10.63% to $501.29 amid explosive gains driven by its position as a leading beneficiary of the AI-driven NAND flash memory supercycle, with surging demand from data centers, edge computing, and complex AI workloads. The rally follows Sandisk's spinoff from Western Digital in February 2025, which has seen shares rise over 800% in the past year, fueled by the ramp-up of its advanced BiCS8 technology node addressing AI scalability needs and upcoming high-bandwidth flash innovations. Analysts highlight persistent NAND shortages, pricing tailwinds, and Sandisk's growing market share in enterprise SSDs as key factors positioning it for outsized growth despite Wall Street's underestimation."
+        "symbol": "META",
+        "name": "Meta Platforms, Inc.",
+        "price": 647.63,
+        "changePercent": 5.66,
+        "date": "2026-01-23T05:00:00+08:00",
+        "news": "Meta Platforms (META) stock rallied over 5% following a bullish note from Jefferies analyst Brent Thill, who reiterated a Buy rating and $910 price target, implying 45% upside, as the stock trades at a discount to peers like Alphabet after recent underperformance. Thill highlighted Meta's attractive valuation at 28.5 times trailing earnings\u2014the cheapest among Magnificent Seven stocks\u2014strong core ad business growth from AI tools, and new monetization from Threads (now 400M monthly users with global ad rollout) and WhatsApp. Investors anticipate AI investments will yield returns in 2026, ahead of Q4 earnings on January 28."
       },
       {
-        "symbol": "MU",
-        "name": "Micron Technology, Inc.",
-        "price": 389.11,
-        "changePercent": 6.61,
-        "date": "2026-01-22T05:00:00+08:00",
-        "news": "Micron Technology's stock surged after the company announced a $1.8 billion deal to acquire a chip fabrication site in Taiwan from Powerchip Semiconductor. This strategic acquisition is intended to boost the production of DRAM memory chips. The move addresses the skyrocketing demand and pricing for memory chips, which are critical components for artificial intelligence (AI) data centers."
+        "symbol": "TSLA",
+        "name": "Tesla, Inc.",
+        "price": 449.36,
+        "changePercent": 4.15,
+        "date": "2026-01-23T05:00:00+08:00",
+        "news": "thought\nI need to synthesize the gathered information to explain why Tesla's stock (TSLA) increased by 4.15%.\n1.  **Identify the core reason:** The primary catalyst identified across multiple sources (Yahoo Finance, Investors.com, TipRanks) is the news about Tesla's Robotaxi service.\n2.  **Elaborate on the news:** CEO Elon Musk announced that Tesla has started offering public Robotaxi rides in Austin without a human safety monitor in the vehicle. This is a significant milestone for the company's autonomous driving and Full Self-Driving (FSD) technology.\n3.  **Connect news to stock movement:** This development signals tangible progress in Tesla's long-promised autonomous driving ambitions, a key part of its future valuation for many investors. The news directly caused the stock to jump more than 4% during the trading day.\n4.  **Mention secondary factors:** One article from Yahoo Finance also noted a broader market rally due to easing trade tensions, which created positive sentiment for equities in general. While the Robotaxi news was the specific catalyst for TSLA's outsized move, the market environment was also favorable.\n*   **Sentence 1:** State the main news: Tesla's stock surged after CEO Elon Musk announced the company has begun offering public Robotaxi rides in Austin without a human safety monitor.\n*   **Sentence 2:** Explain the significance: This marks a major milestone in the development of its autonomous driving technology and is seen by investors as a critical step toward launching a widespread, fully driverless ride-hailing network. This tangible progress on a long-term goal boosted investor confidence and drove the shares higher.Tesla's stock increased after CEO Elon Musk announced a significant milestone for its autonomous driving ambitions. The company has officially started offering public Robotaxi rides in Austin, Texas, without a human safety monitor in the vehicle. This move demonstrates tangible progress toward launching a fully autonomous ride-hailing network, a key future catalyst that bolstered investor confidence and drove the share price up."
       }
     ],
     "needToDropUntilBuyPrice": [
       {
-        "symbol": "SNDK",
-        "price": 501.29,
-        "diff": -20.21,
-        "date": "2026-01-22T05:00:00+08:00"
+        "symbol": "META",
+        "price": 647.63,
+        "diff": -8.9,
+        "date": "2026-01-23T05:00:00+08:00"
       },
       {
-        "symbol": "MSFT",
-        "price": 444.11,
-        "diff": 1.33,
-        "date": "2026-01-22T05:00:00+08:00"
+        "symbol": "IBIT",
+        "price": 50.67,
+        "diff": -11.19,
+        "date": "2026-01-23T05:00:00+08:00"
       },
       {
-        "symbol": "MU",
-        "price": 389.11,
-        "diff": -22.9,
-        "date": "2026-01-22T05:00:00+08:00"
+        "symbol": "TSLA",
+        "price": 449.36,
+        "diff": -10.98,
+        "date": "2026-01-23T05:00:00+08:00"
       },
       {
-        "symbol": "AAOI",
-        "price": 38.38,
-        "diff": 759.82,
-        "date": "2026-01-22T05:00:00+08:00"
+        "symbol": "SOXL",
+        "price": 63.72,
+        "diff": -52.92,
+        "date": "2026-01-23T05:00:00+08:00"
       }
     ]
   }
