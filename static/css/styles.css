@@ -161,33 +161,47 @@ h1 {
 table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 
-th, td {
+/* Header columns */
+thead th {
+    width: 25%;
     padding: 12px 20px;
     text-align: left;
     border-bottom: 1px solid #eee;
-}
-
-th {
     background-color: #f9f9f9;
     font-weight: 600;
     color: #666;
 }
 
-tr:hover {
-    background-color: #f5f5f5;
+/* Remove column - reserve space but hide content by default */
+thead th.remove-col {
+    width: 60px;
+    padding: 12px 8px;
 }
 
-td:nth-child(2),
-td:nth-child(3),
-td:last-child {
+/* Right-align Price, Change, Buy Price headers (columns 3, 4, 5) */
+thead th:nth-child(3),
+thead th:nth-child(4),
+thead th:nth-child(5) {
     text-align: right;
 }
 
-th:nth-child(2),
-th:nth-child(3),
-th:last-child {
+td {
+    padding: 12px 20px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+tr:hover {
+    background-color: #e3f2fd;
+}
+
+/* Right-align Price, Change, Buy Price data cells (skip remove-cell) */
+tbody td:nth-child(3),
+tbody td:nth-child(4),
+tbody td:nth-child(5) {
     text-align: right;
 }
 
@@ -226,16 +240,15 @@ th:last-child {
 }
 
 /* Remove button styles */
-.remove-col {
-    width: auto;
-    padding: 12px 20px;
-}
 
-.remove-cell {
-    width: 40px;
+/* Remove cell - reserve space, hide button by default */
+tbody .remove-cell {
+    width: 60px;
     padding: 12px 8px;
+    border-bottom: 1px solid #eee;
 }
 
+/* Remove button - hidden by default, shown on hover */
 .remove-btn {
     background-color: #dc3545;
     color: #fff;
@@ -244,13 +257,16 @@ th:last-child {
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.75rem;
+    white-space: nowrap;
     opacity: 0;
     transition: opacity 0.2s ease;
 }
 
-tr:hover .remove-btn {
+/* Show button on row hover */
+tbody tr:hover .remove-btn {
     opacity: 1;
 }
+
 
 .remove-btn:hover {
     background-color: #c82333;
