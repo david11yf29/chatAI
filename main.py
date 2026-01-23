@@ -1494,8 +1494,21 @@ async def scheduled_update_stocks():
 
 
 def setup_scheduled_tasks():
-    """Read schedule.json and schedule jobs for enabled tasks."""
+    """Read schedule.json and schedule jobs for enabled tasks.
+
+    This function removes all existing scheduled jobs and re-adds them based on
+    the current schedule.json configuration. This allows dynamic rescheduling
+    without server restart.
+    """
     logger.info("Setting up scheduled tasks from schedule.json...")
+
+    # Remove all existing scheduled jobs to allow clean rescheduling
+    job_ids = ["update_stocks_scheduled", "update_email_scheduled", "send_email_scheduled"]
+    for job_id in job_ids:
+        existing_job = scheduler.get_job(job_id)
+        if existing_job:
+            scheduler.remove_job(job_id)
+            logger.info(f"Removed existing scheduled job: {job_id}")
 
     try:
         with open("schedule.json", "r") as f:
@@ -1565,6 +1578,15 @@ def setup_scheduled_tasks():
                 logger.warning(f"Skipping 'Send Email' - trigger time {trigger_time_str} has already passed")
     else:
         logger.info("'Send Email' task is disabled in schedule.json")
+
+    # Log summary of all scheduled jobs
+    scheduled_jobs = scheduler.get_jobs()
+    if scheduled_jobs:
+        logger.info(f"Total scheduled jobs: {len(scheduled_jobs)}")
+        for job in scheduled_jobs:
+            logger.info(f"  - Job '{job.id}' scheduled for {job.next_run_time}")
+    else:
+        logger.info("No jobs currently scheduled")
 
 
 @app.on_event("startup")
