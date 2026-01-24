@@ -15,46 +15,60 @@
   "content": {
     "dailyPriceChange": [
       {
-        "symbol": "LRCX",
-        "name": "Lam Research Corporation",
-        "price": 220.7,
-        "changePercent": -3.37,
-        "date": "2026-01-23T05:00:00+08:00",
-        "news": "Lam Research Corporation (LRCX) stock declined by 3.37% to $220.70 amid high trading volume of 11.46 million shares, despite a strong year-to-date gain of 33.42%. The drop occurred without specific news catalysts detailed in recent reports, though broader semiconductor sector pressures, including tariff concerns and analyst notes on moderating wafer fabrication equipment spending beyond 2025, may have contributed. The stock remains in focus ahead of its upcoming earnings on January 28, 2026, with positive analyst upgrades from firms like Zacks to \"Strong-Buy\" highlighting AI-driven demand potential."
+        "symbol": "MSFT",
+        "name": "Microsoft Corporation",
+        "price": 465.95,
+        "changePercent": 3.28,
+        "date": "2026-01-24T05:00:00+08:00",
+        "news": "Microsoft (MSFT) stock surged over 4% after the U.S. Air Force awarded the company a $170.4 million contract for its Cloud One program, utilizing Azure for secure cloud services through December 2028. Additionally, Microsoft unveiled Rho-alpha, a new robotics-focused AI model from its Phi family, enabling vision-language-action capabilities for complex robot tasks with tactile sensing and human feedback learning. Shares traded at $469.43, up 4.05%, amid neutral RSI and bearish MACD, with key resistance at $489.50 and support at $465.00."
       },
       {
-        "symbol": "SNAP",
-        "name": "Snap Inc.",
-        "price": 7.66,
-        "changePercent": 3.93,
-        "date": "2026-01-23T05:00:00+08:00",
-        "news": "**Snap Inc. (SNAP) stock rose about 3.93% after settling a major lawsuit accusing Snapchat of addicting young users to social media, avoiding a high-profile \"bellwether\" trial that could have influenced similar cases against Meta, TikTok, and YouTube.** The amicable resolution, with undisclosed terms confirmed by Snap and the Social Media Victims Law Centre, eased investor concerns over legal risks and negative publicity. Shares initially jumped 4.5% before settling at $7.67, up 4% from the prior close, amid the company's ongoing volatility (22 moves >5% in the past year)."
+        "symbol": "SNDK",
+        "name": "Sandisk Corporation",
+        "price": 473.83,
+        "changePercent": -5.88,
+        "date": "2026-01-24T05:00:00+08:00",
+        "news": "SanDisk Corporation's stock dropped as part of a broader pullback following a remarkable rally that saw shares surge over 1,200% since January 2025. The decline is primarily attributed to profit-taking and stretched valuations, rather than any negative shift in the company's strong fundamentals. The underlying demand for AI-driven memory remains a significant tailwind for the company, but technical indicators suggested the stock was overbought and due for a correction."
+      },
+      {
+        "symbol": "AAOI",
+        "name": "Applied Optoelectronics, Inc.",
+        "price": 35.72,
+        "changePercent": -6.37,
+        "date": "2026-01-24T05:00:00+08:00",
+        "news": "Applied Optoelectronics Inc. (AAOI) stock plummeted approximately 18% in after-hours trading following its Q3 2025 earnings release on November 7, 2025, primarily due to revenue of $118.63 million missing analyst expectations of $122.17 million, despite non-GAAP EPS loss of $0.09 aligning with estimates. The revenue shortfall overshadowed the company's bottom-line control and strong year-over-year growth, triggering investor disappointment amid high expectations. This drop added to recent negative performance, highlighting market sensitivity to top-line misses in the fiber-optic networking sector."
       }
     ],
     "needToDropUntilBuyPrice": [
       {
-        "symbol": "LRCX",
-        "price": 220.7,
-        "diff": -9.38,
-        "date": "2026-01-23T05:00:00+08:00"
+        "symbol": "NVDA",
+        "price": 187.67,
+        "diff": -20.07,
+        "date": "2026-01-24T05:00:00+08:00"
       },
       {
-        "symbol": "SNAP",
-        "price": 7.66,
-        "diff": -7.18,
-        "date": "2026-01-23T05:00:00+08:00"
+        "symbol": "MSFT",
+        "price": 465.95,
+        "diff": -3.42,
+        "date": "2026-01-24T05:00:00+08:00"
       },
       {
-        "symbol": "SOXL",
-        "price": 63.72,
-        "diff": -52.92,
-        "date": "2026-01-23T05:00:00+08:00"
+        "symbol": "SNDK",
+        "price": 473.83,
+        "diff": -15.58,
+        "date": "2026-01-24T05:00:00+08:00"
       },
       {
-        "symbol": "IBIT",
-        "price": 50.67,
-        "diff": -11.19,
-        "date": "2026-01-23T05:00:00+08:00"
+        "symbol": "AAOI",
+        "price": 35.72,
+        "diff": -30.01,
+        "date": "2026-01-24T05:00:00+08:00"
+      },
+      {
+        "symbol": "MU",
+        "price": 399.65,
+        "diff": -37.45,
+        "date": "2026-01-24T05:00:00+08:00"
       }
     ]
   }
