@@ -6,40 +6,49 @@
   "search": "yahoo finance",
   "stocks": [
     {
-      "symbol": "LRCX",
-      "name": "Lam Research Corporation",
-      "price": 220.7,
-      "changePercent": -3.37,
-      "date": "2026-01-23T05:00:00+08:00",
-      "buyPrice": 200.0,
-      "diff": -9.38
+      "symbol": "NVDA",
+      "name": "NVIDIA Corporation",
+      "price": 187.67,
+      "changePercent": 1.53,
+      "date": "2026-01-24T05:00:00+08:00",
+      "buyPrice": 150.0,
+      "diff": -20.07
     },
     {
-      "symbol": "SNAP",
-      "name": "Snap Inc.",
-      "price": 7.66,
-      "changePercent": 3.93,
-      "date": "2026-01-23T05:00:00+08:00",
-      "buyPrice": 7.11,
-      "diff": -7.18
+      "symbol": "MSFT",
+      "name": "Microsoft Corporation",
+      "price": 465.95,
+      "changePercent": 3.28,
+      "date": "2026-01-24T05:00:00+08:00",
+      "buyPrice": 450.0,
+      "diff": -3.42
     },
     {
-      "symbol": "SOXL",
-      "name": "Direxion Daily Semiconductor Bull 3X Shares",
-      "price": 63.72,
-      "changePercent": 0.38,
-      "date": "2026-01-23T05:00:00+08:00",
-      "buyPrice": 30.0,
-      "diff": -52.92
+      "symbol": "SNDK",
+      "name": "Sandisk Corporation",
+      "price": 473.83,
+      "changePercent": -5.88,
+      "date": "2026-01-24T05:00:00+08:00",
+      "buyPrice": 400.0,
+      "diff": -15.58
     },
     {
-      "symbol": "IBIT",
-      "name": "iShares Bitcoin Trust ETF",
-      "price": 50.67,
-      "changePercent": -0.86,
-      "date": "2026-01-23T05:00:00+08:00",
-      "buyPrice": 45.0,
-      "diff": -11.19
+      "symbol": "AAOI",
+      "name": "Applied Optoelectronics, Inc.",
+      "price": 35.72,
+      "changePercent": -6.37,
+      "date": "2026-01-24T05:00:00+08:00",
+      "buyPrice": 25.0,
+      "diff": -30.01
+    },
+    {
+      "symbol": "MU",
+      "name": "Micron Technology, Inc.",
+      "price": 399.65,
+      "changePercent": 0.52,
+      "date": "2026-01-24T05:00:00+08:00",
+      "buyPrice": 250.0,
+      "diff": -37.45
     }
   ]
 }
