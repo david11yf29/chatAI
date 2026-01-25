@@ -1590,8 +1590,14 @@ def setup_scheduled_tasks():
 
     The chain starts at the "Update" task's trigger_time. The other task times
     in schedule.json are ignored since tasks now run sequentially.
+
+    If the trigger time has passed but is within the MISSED_JOB_WINDOW (24 hours),
+    the job will be scheduled to run immediately to catch up on missed executions.
     """
     logger.info("Setting up scheduled tasks from schedule.json...")
+
+    # Configurable window for running missed jobs (24 hours)
+    MISSED_JOB_WINDOW_HOURS = 24
 
     # Remove all existing scheduled jobs to allow clean rescheduling
     # Include both old individual job IDs and new chained job ID for backward compatibility
@@ -1627,6 +1633,7 @@ def setup_scheduled_tasks():
         if trigger_time_str:
             trigger_time = datetime.fromisoformat(trigger_time_str)
             if trigger_time > now:
+                # Future job: schedule normally
                 scheduler.add_job(
                     scheduled_chain_execution,
                     trigger=DateTrigger(run_date=trigger_time),
@@ -1635,7 +1642,33 @@ def setup_scheduled_tasks():
                 )
                 logger.info(f"Scheduled chained execution (Update Tracker -> Update News -> Send Email) for {trigger_time_str}")
             else:
-                logger.warning(f"Skipping chained execution - trigger time {trigger_time_str} has already passed")
+                # Past job: check if within missed job window
+                time_since_trigger = now - trigger_time
+                hours_since_trigger = time_since_trigger.total_seconds() / 3600
+
+                if hours_since_trigger <= MISSED_JOB_WINDOW_HOURS:
+                    # Missed job within window: run immediately (10 second delay to allow startup to complete)
+                    run_time = now + timedelta(seconds=10)
+                    scheduler.add_job(
+                        scheduled_chain_execution,
+                        trigger=DateTrigger(run_date=run_time),
+                        id="chained_execution_scheduled",
+                        replace_existing=True
+                    )
+                    logger.warning(f"MISSED JOB DETECTED: Trigger time {trigger_time_str} passed {hours_since_trigger:.1f} hours ago")
+                    logger.info(f"Scheduling missed job to run immediately (in 10 seconds)")
+
+                    # Disable the schedule to prevent re-running on next restart
+                    schedule_data["Update"]["enable"] = False
+                    try:
+                        with open("schedule.json", "w") as f:
+                            json.dump(schedule_data, f, indent=2)
+                        logger.info("Disabled schedule after detecting missed job to prevent duplicate runs")
+                    except Exception as e:
+                        logger.error(f"Failed to update schedule.json: {e}")
+                else:
+                    # Missed job too old: skip it
+                    logger.warning(f"Skipping chained execution - trigger time {trigger_time_str} passed {hours_since_trigger:.1f} hours ago (exceeds {MISSED_JOB_WINDOW_HOURS}h window)")
     else:
         logger.info("Chained execution is disabled (Update task is disabled in schedule.json)")
 
