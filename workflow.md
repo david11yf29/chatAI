@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-25 (Implemented chained execution: Update → Update Email → Send Email run sequentially with 5s delays)
+> - **Last Updated:** 2026-01-25 (Updated line numbers, fixed button names, corrected model name and debounce delay)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -11,26 +11,26 @@
 
 ---
 
-This document describes the detailed workflow for each of the four main buttons in the Stock Tracker application.
+This document describes the detailed workflow for each of the main buttons and features in the Stock Tracker application.
 
 ---
 
-## Button 1: "Add" Button
+## Button 1: "Add Stock" Button
 
 ### UI Location
-- **File:** `static/index.html` (line 18)
+- **File:** `static/index.html` (line 39)
 - **Button ID:** `add-btn`
-- **Style:** Green button in table header
+- **Style:** Button in the actions section at the bottom
 
 ### Event Handler
 - **File:** `static/js/app.js`
-- **Handler Registration:** Line 249
-- **Function:** `addStock()` (lines 46-65)
+- **Handler Registration:** Line 480
+- **Function:** `addStock()` (lines 164-183)
 
 ### Workflow Steps
 
 1. **Click Event Triggered**
-   - User clicks the green "Add" button
+   - User clicks the "Add Stock" button
 
 2. **Create New Stock Object**
    - A new empty stock object is created with default values:
@@ -64,7 +64,7 @@ This document describes the detailed workflow for each of the four main buttons 
 - Memory: New stock object added to `currentStocks` array
 - UI: Symbol input field receives focus
 - **No API call** - This is purely client-side
-- **Auto-save on input** - As user types, changes are auto-saved after 500ms debounce (see Auto-Save Feature below)
+- **Auto-save on input** - As user types, changes are auto-saved after 1500ms debounce (see Auto-Save Feature below)
 
 ---
 
@@ -76,8 +76,8 @@ Automatically saves Symbol and Buy Price changes when the user finishes editing 
 ### Implementation
 
 #### Frontend (`static/js/app.js`)
-- **Function:** `autoSaveStocks()` - Sends current stocks to auto-save endpoint
-- **Function:** `debouncedAutoSave()` - Debounces saves (500ms delay) to avoid excessive API calls
+- **Function:** `autoSaveStocks()` (lines 87-111) - Sends current stocks to auto-save endpoint
+- **Function:** `debouncedAutoSave()` (lines 114-119) - Debounces saves (1500ms delay) to avoid excessive API calls
 - **Event Listeners:** `input` events on `.symbol-input` and `.buy-price-input` fields (saves as user types)
 
 #### Backend (`main.py`)
@@ -90,7 +90,7 @@ Automatically saves Symbol and Buy Price changes when the user finishes editing 
    - `input` event updates `currentStocks` array in memory
    - `input` event also triggers `debouncedAutoSave()`
 
-2. **After 500ms of no typing (debounce delay)**
+2. **After 1500ms of no typing (debounce delay)**
    - `autoSaveStocks()` sends `PATCH /api/stocks/autosave`
    - Request body: `{ "stocks": currentStocks }`
 
@@ -109,7 +109,7 @@ Automatically saves Symbol and Buy Price changes when the user finishes editing 
 - **Preserves price data:** If the symbol hasn't changed, existing price/changePercent/date/name are preserved
 - **Resets price data:** If symbol changes, price data is reset (will be fetched by scheduled Update task)
 - **No loading overlay:** Auto-save happens silently in background
-- **Debounced:** Multiple rapid edits only trigger one save after 500ms of no typing
+- **Debounced:** Multiple rapid edits only trigger one save after 1500ms of no typing
 
 ### Integration with Scheduled Tasks
 When the scheduled "Update" task runs:
@@ -117,28 +117,73 @@ When the scheduled "Update" task runs:
 2. Fetches fresh prices from yfinance for those symbols
 3. Writes updated prices back to `stockapp.json`
 
-This ensures user edits are picked up by scheduled tasks without requiring manual "Update" button click.
+This ensures user edits are picked up by scheduled tasks without requiring manual "Update Tracker" button click.
 
 ---
 
-## Button 2: "Update" Button
+## Delete Stock Button (×)
 
 ### UI Location
-- **File:** `static/index.html` (line 30)
-- **Button ID:** `update-btn`
-- **Style:** Blue button in actions section
+- **File:** `static/js/app.js` (dynamically generated in `renderStocks()`)
+- **Button Class:** `remove-btn`
+- **Style:** Small × button in the first column of each row
 
 ### Event Handler
 - **File:** `static/js/app.js`
-- **Handler Registration:** Line 250
-- **Function:** `saveStocks()` (lines 129-171)
+- **Event Delegation:** Lines 260-273 (within `renderStocks()`)
+- **Function:** `removeStock()` (lines 148-162)
+
+### Workflow Steps
+
+1. **Click Event Triggered**
+   - User clicks the × button on a stock row
+
+2. **Check If Stock is Saved**
+   - If symbol is empty (unsaved new row):
+     - Remove from local `currentStocks` array
+     - Re-render UI immediately
+     - **No API call**
+   - If symbol exists (saved stock):
+     - Proceed to API call
+
+3. **HTTP DELETE Request** (for saved stocks)
+   - **Endpoint:** `/api/stocks/{symbol}`
+   - **Method:** DELETE
+
+4. **Backend Processing (`main.py` lines 614-634)**
+   - Reads `stockapp.json`
+   - Filters out the stock with matching symbol
+   - Writes updated data back to `stockapp.json`
+   - Returns success/failure response
+
+5. **UI Update**
+   - On success: Calls `fetchStocks()` to refresh the table
+
+### Side Effects
+- Database: Stock removed from `stockapp.json`
+- UI: Row disappears from the table
+- For unsaved rows: Pure client-side removal
+
+---
+
+## Button 2: "Update Tracker" Button
+
+### UI Location
+- **File:** `static/index.html` (line 40)
+- **Button ID:** `update-btn`
+- **Style:** Button in actions section
+
+### Event Handler
+- **File:** `static/js/app.js`
+- **Handler Registration:** Line 481
+- **Function:** `saveStocks()` (lines 276-318)
 
 ### Workflow Steps
 
 #### Phase 1: UI Feedback (Immediate)
 
 1. **Click Event Triggered**
-   - User clicks the blue "Update" button
+   - User clicks the "Update Tracker" button
 
 2. **Show Loading Overlay**
    - `setLoading(true)` displays semi-transparent overlay with spinner
@@ -148,7 +193,7 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
    - Button is disabled to prevent duplicate submissions
 
 4. **Update Button Text**
-   - Text changes from "Update" to "Saving..."
+   - Text changes from "Update Tracker" to "Saving..."
 
 #### Phase 2: Frontend API Call
 
@@ -158,7 +203,7 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
    - **Headers:** `Content-Type: application/json`
    - **Body:** `{ "stocks": currentStocks }`
 
-#### Phase 3: Backend Processing (`main.py` lines 339-440)
+#### Phase 3: Backend Processing (`main.py` lines 370-473)
 
 **Two-Phase Save Approach:** Symbol/buyPrice are saved FIRST before yfinance calls, ensuring user edits are persisted even if yfinance fails partway through.
 
@@ -238,7 +283,7 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
     - Button text changes to "Saved!"
 
 20. **Auto-reset (after 1500ms)**
-    - Button text reverts to "Update"
+    - Button text reverts to "Update Tracker"
     - Button re-enabled
 
 ### API Endpoints Called
@@ -260,24 +305,24 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
 
 ---
 
-## Button 3: "Update Email" Button
+## Button 3: "Update News" Button
 
 ### UI Location
-- **File:** `static/index.html` (line 31)
+- **File:** `static/index.html` (line 41)
 - **Button ID:** `update-email-btn`
-- **Style:** Teal/cyan button in actions section
+- **Style:** Button in actions section
 
 ### Event Handler
 - **File:** `static/js/app.js`
-- **Handler Registration:** Line 251
-- **Function:** `updateEmail()` (lines 173-208)
+- **Handler Registration:** Line 482
+- **Function:** `updateEmail()` (lines 320-355)
 
 ### Workflow Steps
 
 #### Phase 1: UI Feedback (Immediate)
 
 1. **Click Event Triggered**
-   - User clicks the teal "Update Email" button
+   - User clicks the "Update News" button
 
 2. **Show Loading Overlay**
    - `setLoading(true)` displays overlay with spinner
@@ -286,7 +331,7 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
    - Button is disabled to prevent duplicate submissions
 
 4. **Update Button Text**
-   - Text changes from "Update Email" to "Updating..."
+   - Text changes from "Update News" to "Updating..."
 
 #### Phase 2: Frontend API Call
 
@@ -295,7 +340,7 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
    - **Method:** POST
    - **No Request Body**
 
-#### Phase 3: Backend Processing (`main.py` lines 560-605)
+#### Phase 3: Backend Processing (`main.py` lines 726-783)
 
 6. **Load Stock Data**
    - Reads `stockapp.json` to get current portfolio
@@ -303,7 +348,7 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
 7. **Filter Significant Price Changes**
    - For each stock where `|changePercent| > 3`:
 
-   8. **Fetch News via AI (`get_stock_news()` function, lines 394-557)**
+   8. **Fetch News via AI (`get_stock_news()` function, lines 637-723)**
 
       a. **Determine Price Direction**
          - Whether price increased or decreased
@@ -322,8 +367,8 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
          **For each turn:**
 
          i. **Call OpenAI Chat API**
-            - Model: `gpt-5`
-            - Messages: Conversation history with tools
+            - Model: `supermind-agent-v1` (has built-in web search capabilities)
+            - Messages: Conversation history
 
          ii. **Execute `web_search` Tool (if AI requests)**
              - API: `https://space.ai-builders.com/backend/v1/search/`
@@ -384,7 +429,7 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
     - Button text changes to "Updated!"
 
 14. **Auto-reset (after 1500ms)**
-    - Button text reverts to "Update Email"
+    - Button text reverts to "Update News"
     - Button re-enabled
 
 ### API Endpoints Called
@@ -410,21 +455,21 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
 ## Button 4: "Send Email" Button
 
 ### UI Location
-- **File:** `static/index.html` (line 32)
+- **File:** `static/index.html` (line 42)
 - **Button ID:** `send-email-btn`
-- **Style:** Orange button in actions section
+- **Style:** Button in actions section
 
 ### Event Handler
 - **File:** `static/js/app.js`
-- **Handler Registration:** Line 252
-- **Function:** `sendEmail()` (lines 210-245)
+- **Handler Registration:** Line 483
+- **Function:** `sendEmail()` (lines 357-392)
 
 ### Workflow Steps
 
 #### Phase 1: UI Feedback (Immediate)
 
 1. **Click Event Triggered**
-   - User clicks the orange "Send Email" button
+   - User clicks the "Send Email" button
 
 2. **Show Loading Overlay**
    - `setLoading(true)` displays overlay with spinner
@@ -442,7 +487,7 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
    - **Method:** POST
    - **No Request Body**
 
-#### Phase 3: Backend Processing (`main.py` lines 918-958)
+#### Phase 3: Backend Processing (`main.py` lines 1096-1144)
 
 6. **Load Email Configuration**
    - Reads `email.json` for template and recipients
@@ -456,7 +501,7 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
    - Checks for `GMAIL_USER` and `GMAIL_APP_PASSWORD` in environment variables
    - Fails fast if credentials missing
 
-9. **Generate Email HTML (`generate_stock_email_html()` function, lines 739-916)**
+9. **Generate Email HTML (`generate_stock_email_html()` function, lines 917-1094)**
 
    a. **Load Email Content**
       - Reads `email.json` to get current content
@@ -464,7 +509,7 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
 
    b. **Generate Daily Price Change Section**
       - For each stock in `dailyPriceChange`:
-        - Calls `generate_stock_card_html()` (lines 649-707)
+        - Calls `generate_stock_card_html()` (lines 827-885)
         - Generates Apple-inspired HTML card with:
           - Symbol and company name
           - Current price formatted as `$X,XXX.XX`
@@ -474,7 +519,7 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
 
    c. **Generate Need to Drop Until Buy Price Section**
       - For each stock in `needToDropUntilBuyPrice`:
-        - Calls `generate_diff_card_html()` (lines 710-736)
+        - Calls `generate_diff_card_html()` (lines 888-914)
         - Generates card with:
           - Symbol and current price
           - Diff to buy price with color-coded badge
@@ -539,19 +584,79 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
 
 ---
 
+## Schedule Button and Trigger Time Input
+
+### UI Location
+- **Trigger Time Input:** `static/index.html` (line 30)
+  - **ID:** `trigger-time-input`
+  - **Placeholder:** `2026-01-23T09:15:00+08:00`
+- **Schedule Button:** `static/index.html` (line 36)
+  - **ID:** `schedule-btn`
+  - **Text:** "Schedule"
+
+### Rectangle Indicators
+- **File:** `static/index.html` (lines 31-35)
+- **Classes:** `.rect-blue`, `.rect-teal`, `.rect-orange`
+- **Purpose:** Visual indicators showing which tasks are scheduled
+  - Blue = Update Tracker scheduled
+  - Teal = Update News scheduled
+  - Orange = Send Email scheduled
+- **Behavior:** When chained execution is scheduled, all three indicators light up together
+
+### Event Handler
+- **File:** `static/js/app.js`
+- **Handler Registration:** Line 484
+- **Function:** `updateSchedule()` (lines 426-474)
+- **Function:** `checkScheduleStatus()` (lines 394-424) - Called on page load
+
+### Workflow Steps
+
+1. **User Enters Trigger Time**
+   - ISO 8601 format with timezone: `2026-01-23T07:00:00+08:00`
+
+2. **Click "Schedule" Button**
+   - Button disabled, text changes to "Scheduling..."
+
+3. **HTTP POST Request**
+   - **Endpoint:** `/api/schedule`
+   - **Method:** POST
+   - **Body:** `{ "trigger_time": "<ISO 8601 datetime>" }`
+
+4. **Backend Processing (`main.py` lines 1189-1226)**
+   - Parses the trigger time
+   - Updates `schedule.json` with new trigger time
+   - Calls `setup_scheduled_tasks()` to reschedule the job
+   - Returns success/failure response
+
+5. **UI Feedback**
+   - On success:
+     - All three rectangle indicators (blue, teal, orange) light up
+     - Button text changes to "Scheduled!"
+     - Resets after 1500ms
+   - On error:
+     - Button text changes to "Error!"
+     - Resets after 1500ms
+
+### Status Check on Page Load
+- `checkScheduleStatus()` calls `GET /api/schedule-status`
+- If chained execution is scheduled, all rectangle indicators light up
+- Backend checks if `Update.trigger_time` is in the future and `Update.enable` is true
+
+---
+
 ## Scheduled Task Execution
 
-In addition to manual button clicks, the "Update", "Update Email", and "Send Email" tasks can be triggered automatically at scheduled times using APScheduler.
+In addition to manual button clicks, the "Update Tracker", "Update News", and "Send Email" tasks can be triggered automatically at scheduled times using APScheduler.
 
 ### Chained Execution Model
 
 **All three tasks run as a chain, not independently.** When the scheduled time arrives:
 
-1. **Update Tracker** runs first
+1. **Update Tracker** (fetch stock prices) runs first
 2. Wait **5 seconds**
-3. **Update News** runs
+3. **Update News** (generate AI news summaries) runs
 4. Wait **5 seconds**
-5. **Send Email** runs
+5. **Send Email** (send report via Gmail) runs
 
 This ensures data flows correctly: stock prices are updated before generating email content, and email content is generated before sending.
 
@@ -632,9 +737,9 @@ If one task fails, the chain **continues** to the next task:
 
 | Task | Fails | Result |
 |------|-------|--------|
-| Update Tracker | Yes | Logs error, waits 5s, continues to Update News |
-| Update News | Yes | Logs error, waits 5s, continues to Send Email |
-| Send Email | Yes | Logs error, chain ends |
+| Update Tracker (Task 1/3) | Yes | Logs error, waits 5s, continues to Update News |
+| Update News (Task 2/3) | Yes | Logs error, waits 5s, continues to Send Email |
+| Send Email (Task 3/3) | Yes | Logs error, chain ends |
 
 This ensures a single failure doesn't block subsequent tasks.
 
@@ -692,8 +797,8 @@ The application uses Server-Sent Events (SSE) to push real-time updates from the
 ### How It Works
 
 1. **Frontend connects on page load**
-   - `connectSSE()` in `app.js` establishes connection to `/api/events`
-   - Connection auto-reconnects on errors
+   - `connectSSE()` (lines 7-73) in `app.js` establishes connection to `/api/events`
+   - Connection auto-reconnects on errors after 5-second delay
 
 2. **Backend broadcasts events after task completion**
    - `stocks-updated`: After scheduled/manual Update Tracker completes
@@ -701,24 +806,44 @@ The application uses Server-Sent Events (SSE) to push real-time updates from the
    - `email-sent`: After scheduled/manual Send Email completes
 
 3. **Frontend reacts to events**
-   - On `stocks-updated`: Calls `fetchStocks()` to refresh UI with new data
+   - On `stocks-updated`: Calls `fetchStocks()` to refresh UI, turns off blue rectangle indicator
+   - On `email-updated`: Turns off teal rectangle indicator
+   - On `email-sent`: Turns off orange rectangle indicator
 
 ### SSE Endpoint
 
 - **URL:** `GET /api/events`
 - **Response:** `text/event-stream`
+- **Backend Implementation:** `main.py` lines 1229-1269
 - **Events:**
   - `connected` - Initial connection acknowledgment
   - `stocks-updated` - Stock prices updated
   - `email-updated` - Email content generated
   - `email-sent` - Email sent successfully
 
+### Connection Reliability Features
+
+#### Health Check (lines 66-72)
+- Every 10 seconds, checks if SSE connection is still alive
+- If connection is closed, automatically reconnects
+
+#### Tab Visibility Handling (lines 76-84)
+- When browser tab becomes visible again, checks SSE connection
+- If disconnected, automatically reconnects
+- Prevents stale data when user returns to the tab
+
+#### Error Recovery (lines 51-64)
+- On SSE errors, closes connection and clears health check interval
+- Waits 5 seconds before attempting reconnection
+- Logs reconnection attempts to console
+
 ### Key Behavior
 
 - Scheduled tasks automatically notify frontend when complete
 - Frontend refreshes stock data without manual page reload
-- Keepalive pings sent every 30 seconds to maintain connection
+- Keepalive pings sent every 30 seconds from backend to maintain connection
 - **On reconnection:** Frontend fetches latest stocks to catch any events missed during disconnection
+- **Rectangle indicators:** Automatically turn off when corresponding SSE event is received
 
 ---
 
@@ -728,11 +853,13 @@ The application uses Server-Sent Events (SSE) to push real-time updates from the
 
 | Button/Feature | Action | API Endpoint | DB Read | DB Write | External Services | Schedulable |
 |----------------|--------|--------------|---------|----------|-------------------|-------------|
-| **Add** | Add empty row | None | None | None | None | No |
-| **Auto-Save** | Save edits on blur | `PATCH /api/stocks/autosave` | stockapp.json | stockapp.json | None | No |
-| **Update** | Save & fetch prices | `PUT /api/stocks`, `GET /api/stocks` | stockapp.json | stockapp.json | yfinance | Yes |
-| **Update Email** | Generate news | `POST /api/update-email` | stockapp.json, email.json | email.json | OpenAI, Search API, News sites | Yes |
+| **Add Stock** | Add empty row | None | None | None | None | No |
+| **Delete (×)** | Remove stock | `DELETE /api/stocks/{symbol}` | stockapp.json | stockapp.json | None | No |
+| **Auto-Save** | Save edits as you type | `PATCH /api/stocks/autosave` | stockapp.json | stockapp.json | None | No |
+| **Update Tracker** | Save & fetch prices | `PUT /api/stocks`, `GET /api/stocks` | stockapp.json | stockapp.json | yfinance | Yes |
+| **Update News** | Generate news | `POST /api/update-email` | stockapp.json, email.json | email.json | supermind-agent-v1 (OpenAI) | Yes |
 | **Send Email** | Send email | `POST /api/send-test-email` | email.json | None | Gmail SMTP | Yes |
+| **Schedule** | Set trigger time | `POST /api/schedule` | schedule.json | schedule.json | None | N/A |
 
 ### Data Files
 - **stockapp.json** - Source of truth for stock portfolio
@@ -748,7 +875,44 @@ The application uses Server-Sent Events (SSE) to push real-time updates from the
 All async buttons follow this pattern:
 1. Show loading overlay
 2. Disable button
-3. Change button text to action verb (Saving/Updating/Sending)
+3. Change button text to action verb (Saving/Updating/Sending/Scheduling)
 4. Make API call
-5. On success: show "Success!" text, reset after 1.5s
+5. On success: show "Success!" text (Saved!/Updated!/Sent!/Scheduled!), reset after 1.5s
 6. On error: show "Error!" text, reset after 1.5s, log to console
+
+### stockapp.json Structure
+```json
+{
+  "_metadata": {
+    "description": "Stock portfolio tracking data",
+    "sourceOfTruth": "This file is the single source of truth for all stock data."
+  },
+  "search": "yahoo finance",
+  "stocks": [
+    {
+      "symbol": "NVDA",
+      "name": "NVIDIA Corporation",
+      "price": 187.67,
+      "changePercent": 1.53,
+      "date": "2026-01-24T05:00:00+08:00",
+      "buyPrice": 150.0,
+      "diff": -20.07
+    }
+  ]
+}
+```
+
+### email.json Structure
+```json
+{
+  "from": "stock-tracker@ai-builders.space",
+  "newsSearch": ["https://finance.yahoo.com/", "..."],
+  "time": "2026-01-19T08:00:00+08:00",
+  "to": ["email1@example.com", "email2@example.com"],
+  "subject": "Stocker Tracker Report",
+  "content": {
+    "dailyPriceChange": [...],
+    "needToDropUntilBuyPrice": [...]
+  }
+}
+```
