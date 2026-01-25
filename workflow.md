@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-25 (Added missed job recovery feature for server restarts)
+> - **Last Updated:** 2026-01-25 (Added "Go" button for immediate chain execution)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -644,6 +644,73 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
 
 ---
 
+## "Go" Button (Immediate Chain Execution)
+
+### UI Location
+- **File:** `static/index.html` (line 37)
+- **Button ID:** `go-btn`
+- **Text:** "Go"
+- **Style:** Pink/magenta button beside the Schedule button
+
+### Purpose
+Run the chained execution (Update Tracker → Update News → Send Email) immediately without waiting for a scheduled time. Useful when the user needs the email report right away.
+
+### Event Handler
+- **File:** `static/js/app.js`
+- **Handler Registration:** Line 530
+- **Function:** `runChain()` (lines 476-519)
+
+### Workflow Steps
+
+1. **Click Event Triggered**
+   - User clicks the "Go" button
+
+2. **UI Feedback (Immediate)**
+   - Button disabled, text changes to "Running..."
+   - All three rectangle indicators (blue, teal, orange) light up
+
+3. **HTTP POST Request**
+   - **Endpoint:** `/api/run-chain`
+   - **Method:** POST
+   - **No Request Body**
+
+4. **Backend Processing (`main.py`)**
+   - Endpoint receives request
+   - Adds `scheduled_chain_execution()` to background tasks
+   - Returns immediately with success response
+   - Background task runs the chain:
+     - Task 1/3: Update Tracker (fetches stock prices)
+     - 5-second delay
+     - Task 2/3: Update News (generates AI news summaries)
+     - 5-second delay
+     - Task 3/3: Send Email (sends report via Gmail)
+
+5. **UI Feedback (Success)**
+   - Button text changes to "Started!"
+   - Resets to "Go" after 1500ms
+   - Rectangle indicators turn off as SSE events are received:
+     - `stocks-updated` → blue turns off
+     - `email-updated` → teal turns off
+     - `email-sent` → orange turns off
+
+6. **Error Handling**
+   - Button text changes to "Error!"
+   - All rectangle indicators turn off
+   - Resets after 1500ms
+   - Error logged to console
+
+### API Endpoint
+- `POST /api/run-chain` - Triggers immediate chain execution
+
+### Difference from Schedule Button
+| Feature | Schedule Button | Go Button |
+|---------|-----------------|-----------|
+| Timing | Runs at user-specified time | Runs immediately |
+| Input required | Trigger time | None |
+| Use case | Daily automated reports | On-demand reports |
+
+---
+
 ## Scheduled Task Execution
 
 In addition to manual button clicks, the "Update Tracker", "Update News", and "Send Email" tasks can be triggered automatically at scheduled times using APScheduler.
@@ -880,6 +947,7 @@ The application uses Server-Sent Events (SSE) to push real-time updates from the
 | **Update News** | Generate news | `POST /api/update-email` | stockapp.json, email.json | email.json | supermind-agent-v1 (OpenAI) | Yes |
 | **Send Email** | Send email | `POST /api/send-test-email` | email.json | None | Gmail SMTP | Yes |
 | **Schedule** | Set trigger time | `POST /api/schedule` | schedule.json | schedule.json | None | N/A |
+| **Go** | Run chain immediately | `POST /api/run-chain` | stockapp.json, email.json | stockapp.json, email.json | yfinance, OpenAI, Gmail SMTP | N/A |
 
 ### Data Files
 - **stockapp.json** - Source of truth for stock portfolio

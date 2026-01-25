@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse
@@ -1226,6 +1226,24 @@ async def update_schedule(request: ScheduleRequest):
     except Exception as e:
         logger.error(f"Error updating schedule: {e}")
         return {"success": False, "error": str(e)}
+
+
+@app.post("/api/run-chain")
+async def run_chain_immediately(background_tasks: BackgroundTasks):
+    """Run the chained execution (Update Tracker -> Update News -> Send Email) immediately.
+
+    This endpoint triggers the same chain as the scheduled task, but runs it right away
+    instead of waiting for a scheduled time. Useful when user needs the email report immediately.
+    """
+    logger.info("API: Run chain immediately requested")
+
+    # Run the chain in background so the API can return immediately
+    background_tasks.add_task(scheduled_chain_execution)
+
+    return {
+        "success": True,
+        "message": "Chain execution started. Tasks will run: Update Tracker -> Update News -> Send Email"
+    }
 
 
 @app.get("/api/events")

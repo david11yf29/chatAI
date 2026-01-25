@@ -473,6 +473,53 @@ async function updateSchedule() {
     }
 }
 
+async function runChain() {
+    const goBtn = document.getElementById('go-btn');
+
+    goBtn.disabled = true;
+    goBtn.textContent = 'Running...';
+
+    // Light up all rectangle indicators to show chain is running
+    document.querySelector('.rect-blue').classList.add('scheduled');
+    document.querySelector('.rect-teal').classList.add('scheduled');
+    document.querySelector('.rect-orange').classList.add('scheduled');
+
+    console.log('Running chain immediately...');
+
+    try {
+        const response = await fetch('/api/run-chain', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('Chain started successfully:', data);
+            goBtn.textContent = 'Started!';
+            setTimeout(() => {
+                goBtn.textContent = 'Go';
+                goBtn.disabled = false;
+            }, 1500);
+        } else {
+            throw new Error(data.error || 'Failed to start chain');
+        }
+    } catch (error) {
+        console.error('Error running chain:', error);
+        goBtn.textContent = 'Error!';
+        // Turn off indicators on error
+        document.querySelector('.rect-blue').classList.remove('scheduled');
+        document.querySelector('.rect-teal').classList.remove('scheduled');
+        document.querySelector('.rect-orange').classList.remove('scheduled');
+        setTimeout(() => {
+            goBtn.textContent = 'Go';
+            goBtn.disabled = false;
+        }, 1500);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     fetchStocks();
     connectSSE();  // Establish SSE connection for real-time updates
@@ -482,4 +529,5 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('update-email-btn').addEventListener('click', updateEmail);
     document.getElementById('send-email-btn').addEventListener('click', sendEmail);
     document.getElementById('schedule-btn').addEventListener('click', updateSchedule);
+    document.getElementById('go-btn').addEventListener('click', runChain);
 });
