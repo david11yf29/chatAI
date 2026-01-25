@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-25 (Updated line numbers, fixed button names, corrected model name and debounce delay)
+> - **Last Updated:** 2026-01-25 (Added missed job recovery feature for server restarts)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -743,13 +743,33 @@ If one task fails, the chain **continues** to the next task:
 
 This ensures a single failure doesn't block subsequent tasks.
 
+### Missed Job Recovery (Server Restart Resilience)
+
+APScheduler uses in-memory job storage, so scheduled jobs are lost when the server restarts. To handle this, the scheduler automatically detects and runs missed jobs on startup.
+
+**Configurable Window:** 24 hours (`MISSED_JOB_WINDOW_HOURS`)
+
+**Behavior:**
+1. On startup, `setup_scheduled_tasks()` checks if `trigger_time` has already passed
+2. If passed but within 24 hours: schedules the job to run immediately (10-second delay)
+3. If passed more than 24 hours ago: skips the job (too stale)
+4. After running a missed job, `schedule.json` is updated with `enable: false` to prevent duplicate runs on subsequent restarts
+
+**Log Messages for Missed Jobs:**
+```
+MISSED JOB DETECTED: Trigger time 2026-01-25T14:00:00+08:00 passed 2.5 hours ago
+Scheduling missed job to run immediately (in 10 seconds)
+Disabled schedule after detecting missed job to prevent duplicate runs
+```
+
 ### Edge Case Handling
 
 | Scenario | Behavior |
 |----------|----------|
 | `schedule.json` missing | Log warning, no chain scheduled |
 | `schedule.json` invalid JSON | Log error, no chain scheduled |
-| `Update.trigger_time` in the past | Log warning, no chain scheduled |
+| `Update.trigger_time` in the past (within 24h) | **Run immediately**, disable schedule after execution |
+| `Update.trigger_time` in the past (over 24h) | Log warning, no chain scheduled |
 | `Update.enable: false` | Log info, no chain scheduled |
 | Individual task fails | Log error, chain continues to next task |
 
