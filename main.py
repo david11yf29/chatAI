@@ -1188,47 +1188,34 @@ async def get_schedule_status():
 
 @app.post("/api/schedule")
 async def update_schedule(request: ScheduleRequest):
-    """Update schedule.json with trigger times based on user input.
+    """Update schedule.json with trigger time for the chained execution.
 
-    - "Update": user's input time
-    - "Update Email": user's input time + 3 minutes
-    - "Send Email": user's input time + 10 minutes
+    The chain (Update Tracker -> Update News -> Send Email) starts at the user's input time.
     """
     try:
         # Parse the input trigger time
-        base_time = datetime.fromisoformat(request.trigger_time)
+        trigger_time = datetime.fromisoformat(request.trigger_time)
 
-        # Calculate the three trigger times
-        update_time = base_time
-        update_email_time = base_time + timedelta(minutes=3)
-        send_email_time = base_time + timedelta(minutes=10)
-
-        # Read existing schedule.json to preserve other fields
+        # Read existing schedule.json to preserve enable flag
         with open("schedule.json", "r") as f:
             schedule_data = json.load(f)
 
-        # Update the trigger times (preserve enable flags)
-        schedule_data["Update"]["trigger_time"] = update_time.isoformat()
-        schedule_data["Update Email"]["trigger_time"] = update_email_time.isoformat()
-        schedule_data["Send Email"]["trigger_time"] = send_email_time.isoformat()
+        # Update the trigger time
+        schedule_data["Update"]["trigger_time"] = trigger_time.isoformat()
 
         # Write back to schedule.json
         with open("schedule.json", "w") as f:
             json.dump(schedule_data, f, indent=2)
 
-        logger.info(f"Schedule updated - Update: {update_time.isoformat()}, "
-                   f"Update Email: {update_email_time.isoformat()}, "
-                   f"Send Email: {send_email_time.isoformat()}")
+        logger.info(f"Schedule updated - Chain starts at: {trigger_time.isoformat()}")
 
-        # Re-setup scheduled tasks with new times
+        # Re-setup scheduled tasks with new time
         setup_scheduled_tasks()
 
         return {
             "success": True,
             "schedule": {
-                "Update": update_time.isoformat(),
-                "Update Email": update_email_time.isoformat(),
-                "Send Email": send_email_time.isoformat()
+                "trigger_time": trigger_time.isoformat()
             }
         }
     except ValueError as e:
