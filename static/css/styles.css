@@ -121,6 +121,27 @@ h1 {
     cursor: not-allowed;
 }
 
+#go-btn {
+    background-color: #e83e8c;
+    color: #fff;
+    border: none;
+    height: 33px;
+    padding: 0 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    min-width: 50px;
+}
+
+#go-btn:hover {
+    background-color: #d63384;
+}
+
+#go-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
 #add-btn {
     background-color: #28a745;
     color: #fff;
