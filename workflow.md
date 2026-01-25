@@ -3,7 +3,7 @@
 > **📌 CANONICAL REFERENCE**
 > This document is the **source of truth** for understanding button workflows in the Stock Tracker application.
 >
-> - **Last Updated:** 2026-01-23 (Migrated email sending from Resend API to Gmail SMTP)
+> - **Last Updated:** 2026-01-25 (Implemented chained execution: Update → Update Email → Send Email run sequentially with 5s delays)
 > - **Maintainer:** Update this file whenever button logic changes in the code
 > - **Files to watch:** `static/js/app.js`, `main.py`, `static/index.html`
 >
@@ -543,6 +543,18 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
 
 In addition to manual button clicks, the "Update", "Update Email", and "Send Email" tasks can be triggered automatically at scheduled times using APScheduler.
 
+### Chained Execution Model
+
+**All three tasks run as a chain, not independently.** When the scheduled time arrives:
+
+1. **Update Tracker** runs first
+2. Wait **5 seconds**
+3. **Update News** runs
+4. Wait **5 seconds**
+5. **Send Email** runs
+
+This ensures data flows correctly: stock prices are updated before generating email content, and email content is generated before sending.
+
 ### Configuration File
 
 **File:** `schedule.json`
@@ -565,12 +577,14 @@ In addition to manual button clicks, the "Update", "Update Email", and "Send Ema
 }
 ```
 
+**Note:** Only the `Update.trigger_time` is used to start the chain. The other trigger times are stored for backward compatibility but are ignored since all tasks run sequentially.
+
 ### Configuration Fields
 
 | Field | Description |
 |-------|-------------|
-| `enable` | Boolean - whether this task should be scheduled |
-| `trigger_time` | ISO 8601 datetime with timezone when the task should run |
+| `Update.enable` | Boolean - whether the chained execution should be scheduled |
+| `Update.trigger_time` | ISO 8601 datetime with timezone when the chain starts |
 
 ### Scheduler Implementation
 
@@ -579,63 +593,103 @@ In addition to manual button clicks, the "Update", "Update Email", and "Send Ema
 **File:** `main.py`
 
 **Key Functions:**
-- `setup_scheduled_tasks()` - Reads `schedule.json` and schedules enabled tasks
-- `scheduled_update_stocks()` - Wrapper that logs execution and advances schedule for Update task
-- `scheduled_update_email()` - Wrapper that logs execution for Update Email task
-- `scheduled_send_email()` - Wrapper that logs execution for Send Email task
+- `setup_scheduled_tasks()` - Reads `schedule.json` and schedules the chained job
+- `scheduled_chain_execution()` - Master orchestrator that runs Update Tracker → Update News → Send Email with 5-second delays
+- Individual wrappers (`scheduled_update_stocks()`, etc.) still exist for potential standalone use
+
+### Job ID
+
+- **`chained_execution_scheduled`** - Single job ID for the chained execution
 
 ### Lifecycle Events
 
 1. **Application Startup (`startup_event`):**
    - Calls `setup_scheduled_tasks()` to read schedule.json
+   - Schedules single `chained_execution_scheduled` job
    - Starts the APScheduler with `scheduler.start()`
 
 2. **Application Shutdown (`shutdown_event`):**
    - Stops the APScheduler with `scheduler.shutdown(wait=False)`
 
-### Workflow: Scheduled Task Execution
+### Workflow: Chained Execution
 
 1. **On Application Startup:**
    - Read `schedule.json`
-   - For each task with `enable: true`:
-     - Parse `trigger_time`
-     - If trigger time is in the future, schedule the job
-     - If trigger time has passed, log warning and skip
+   - Check `Update.enable` - if true and trigger_time is in future:
+     - Schedule `scheduled_chain_execution` job
+     - Job ID: `chained_execution_scheduled`
 
 2. **When Scheduled Time Arrives:**
-   - APScheduler triggers the appropriate async function
-   - Logs "SCHEDULED TASK: [Task Name] - Starting"
-   - Calls the core function (`_perform_update_stocks()`, `_perform_update_email()`, or `_perform_send_email()`)
-   - Logs completion status
+   - APScheduler triggers `scheduled_chain_execution()`
+   - **Task 1/3:** Update Tracker
+     - Calls `_perform_update_stocks()`
+     - Broadcasts `stocks-updated` SSE event
+   - **5-second delay**
+   - **Task 2/3:** Update News
+     - Calls `_perform_update_email()`
+     - Broadcasts `email-updated` SSE event
+   - **5-second delay**
+   - **Task 3/3:** Send Email
+     - Calls `_perform_send_email()`
+     - Broadcasts `email-sent` SSE event
+   - Chain complete
+
+### Error Handling (Fault Tolerance)
+
+If one task fails, the chain **continues** to the next task:
+
+| Task | Fails | Result |
+|------|-------|--------|
+| Update Tracker | Yes | Logs error, waits 5s, continues to Update News |
+| Update News | Yes | Logs error, waits 5s, continues to Send Email |
+| Send Email | Yes | Logs error, chain ends |
+
+This ensures a single failure doesn't block subsequent tasks.
 
 ### Edge Case Handling
 
 | Scenario | Behavior |
 |----------|----------|
-| `schedule.json` missing | Log warning, continue without scheduling |
-| `schedule.json` invalid JSON | Log error, continue without scheduling |
-| `trigger_time` in the past | Log warning, skip scheduling that task |
-| `enable: false` | Skip scheduling that task |
-| Task execution fails | Log error, task does not retry |
+| `schedule.json` missing | Log warning, no chain scheduled |
+| `schedule.json` invalid JSON | Log error, no chain scheduled |
+| `Update.trigger_time` in the past | Log warning, no chain scheduled |
+| `Update.enable: false` | Log info, no chain scheduled |
+| Individual task fails | Log error, chain continues to next task |
 
 ### Log Messages
 
 **Startup:**
 ```
 Setting up scheduled tasks from schedule.json...
-Scheduled task 'Update' for 2026-01-17T07:00:00+08:00
-Scheduled task 'Update Email' for 2026-01-17T07:30:00+08:00
-Scheduled task 'Send Email' for 2026-01-17T07:40:00+08:00
+Scheduled chained execution (Update Tracker -> Update News -> Send Email) for 2026-01-17T07:00:00+08:00
+Total scheduled jobs: 1
+  - Job 'chained_execution_scheduled' scheduled for 2026-01-17 07:00:00+08:00
 APScheduler started
 ```
 
 **Execution:**
 ```
 ============================================================
-SCHEDULED TASK: Update - Starting
+SCHEDULED CHAIN: Starting chained execution
 ============================================================
-SCHEDULED TASK: Update - Completed successfully: {...}
+SCHEDULED CHAIN: Task 1/3 - Update Tracker - Starting
+SCHEDULED CHAIN: Task 1/3 - Update Tracker - Completed: {...}
+SCHEDULED CHAIN: Waiting 5 seconds before next task...
+SCHEDULED CHAIN: Task 2/3 - Update News - Starting
+SCHEDULED CHAIN: Task 2/3 - Update News - Completed: {...}
+SCHEDULED CHAIN: Waiting 5 seconds before next task...
+SCHEDULED CHAIN: Task 3/3 - Send Email - Starting
+SCHEDULED CHAIN: Task 3/3 - Send Email - Completed: {...}
+============================================================
+SCHEDULED CHAIN: All tasks completed
+============================================================
 ```
+
+### Schedule Status API
+
+The `/api/schedule-status` endpoint reflects the chain model:
+- When the chain is scheduled, all three indicators (`update`, `updateEmail`, `sendEmail`) return `true`
+- When the chain is not scheduled, all three return `false`
 
 ---
 
@@ -650,8 +704,8 @@ The application uses Server-Sent Events (SSE) to push real-time updates from the
    - Connection auto-reconnects on errors
 
 2. **Backend broadcasts events after task completion**
-   - `stocks-updated`: After scheduled/manual Update completes
-   - `email-updated`: After scheduled/manual Update Email completes
+   - `stocks-updated`: After scheduled/manual Update Tracker completes
+   - `email-updated`: After scheduled/manual Update News completes
    - `email-sent`: After scheduled/manual Send Email completes
 
 3. **Frontend reacts to events**
