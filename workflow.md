@@ -565,19 +565,11 @@ This ensures data flows correctly: stock prices are updated before generating em
   "Update": {
     "enable": true,
     "trigger_time": "2026-01-17T07:00:00+08:00"
-  },
-  "Update Email": {
-    "enable": true,
-    "trigger_time": "2026-01-17T07:30:00+08:00"
-  },
-  "Send Email": {
-    "enable": true,
-    "trigger_time": "2026-01-17T07:40:00+08:00"
   }
 }
 ```
 
-**Note:** Only the `Update.trigger_time` is used to start the chain. The other trigger times are stored for backward compatibility but are ignored since all tasks run sequentially.
+The chain starts at `Update.trigger_time`. All three tasks run sequentially with 5-second delays.
 
 ### Configuration Fields
 
