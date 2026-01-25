@@ -662,10 +662,8 @@ def get_stock_news(symbol: str, name: str, change_percent: float) -> str:
 PREFERRED SOURCES: Search these sites first: {sources_list}
 
 SEARCH KEYWORDS (use these in your search):
-- "{symbol} after-hours news"
 - "{symbol} stock {movement_keywords}"
-- "{symbol} earnings report guidance outlook"
-- "{symbol} FDA approval acquisition deal news catalyst"
+- "{symbol} after-hours news"
 """
 
     prompt = f"""Find news explaining why {symbol} ({name}) stock {direction} by {abs(change_percent):.2f}%.
