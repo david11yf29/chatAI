@@ -713,7 +713,9 @@ Return ONLY the final summary. No planning text, no "I will", no "Let me" - just
                 'opening article', 'now reading', 'searching for', 'looking for',
                 'reading the', 'opening the', 'attempting to', 'trying',
                 'will return', 'continuing', 'finalizing', 'returning only',
-                'now attempting', 'searching again'
+                'now attempting', 'searching again',
+                # Agent trace patterns (internal debug output)
+                'completion_tool', 'research_agent', '.function.', 'with response:'
             ]):
                 continue
             cleaned_lines.append(line)
