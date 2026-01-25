@@ -1705,7 +1705,7 @@ def setup_scheduled_tasks():
 @app.on_event("startup")
 async def startup_event():
     logger.info("=" * 80)
-    logger.info("Application starting up")
+    logger.info("Application starting up - VERSION 2026.01.25.v2 (with Go button)")
     logger.info("=" * 80)
 
     # Log environment details
