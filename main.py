@@ -662,10 +662,8 @@ def get_stock_news(symbol: str, name: str, change_percent: float) -> str:
 PREFERRED SOURCES: Search these sites first: {sources_list}
 
 SEARCH KEYWORDS (use these in your search):
-- "{symbol} after-hours news"
 - "{symbol} stock {movement_keywords}"
-- "{symbol} earnings report guidance outlook"
-- "{symbol} FDA approval acquisition deal news catalyst"
+- "{symbol} after-hours news"
 """
 
     prompt = f"""Find news explaining why {symbol} ({name}) stock {direction} by {abs(change_percent):.2f}%.
@@ -1148,13 +1146,17 @@ async def send_test_email():
 
 @app.get("/api/schedule-status")
 async def get_schedule_status():
-    """Check which tasks are scheduled in the future.
+    """Check if the chained execution is scheduled.
+
+    Since all three tasks (Update, Update Email, Send Email) now run as a chain,
+    when the chain is scheduled, all three indicators show as scheduled.
 
     Returns:
         dict: Individual status for each task:
-              - update: true/false (Update Tracker)
-              - updateEmail: true/false (Update News)
-              - sendEmail: true/false (Send Email)
+              - update: true/false
+              - updateEmail: true/false
+              - sendEmail: true/false
+              All three will be true/false together (they run as a chain).
     """
     try:
         with open("schedule.json", "r") as f:
@@ -1162,40 +1164,23 @@ async def get_schedule_status():
 
         now = datetime.now(ZoneInfo("Asia/Taipei"))
 
-        result = {
-            "update": False,
-            "updateEmail": False,
-            "sendEmail": False
-        }
-
-        # Check Update task
+        # Check if the chain is scheduled using the Update task's trigger_time
+        # When the chain is scheduled, all three tasks run together
+        chain_scheduled = False
         update_config = schedule_data.get("Update", {})
         if update_config.get("enable", False):
             trigger_time_str = update_config.get("trigger_time")
             if trigger_time_str:
                 trigger_time = datetime.fromisoformat(trigger_time_str)
                 if trigger_time > now:
-                    result["update"] = True
+                    chain_scheduled = True
 
-        # Check Update Email task
-        update_email_config = schedule_data.get("Update Email", {})
-        if update_email_config.get("enable", False):
-            trigger_time_str = update_email_config.get("trigger_time")
-            if trigger_time_str:
-                trigger_time = datetime.fromisoformat(trigger_time_str)
-                if trigger_time > now:
-                    result["updateEmail"] = True
-
-        # Check Send Email task
-        send_email_config = schedule_data.get("Send Email", {})
-        if send_email_config.get("enable", False):
-            trigger_time_str = send_email_config.get("trigger_time")
-            if trigger_time_str:
-                trigger_time = datetime.fromisoformat(trigger_time_str)
-                if trigger_time > now:
-                    result["sendEmail"] = True
-
-        return result
+        # All three tasks share the same scheduled status (they run as a chain)
+        return {
+            "update": chain_scheduled,
+            "updateEmail": chain_scheduled,
+            "sendEmail": chain_scheduled
+        }
     except Exception as e:
         logger.error(f"Error checking schedule status: {e}")
         return {"update": False, "updateEmail": False, "sendEmail": False}
@@ -1203,47 +1188,34 @@ async def get_schedule_status():
 
 @app.post("/api/schedule")
 async def update_schedule(request: ScheduleRequest):
-    """Update schedule.json with trigger times based on user input.
+    """Update schedule.json with trigger time for the chained execution.
 
-    - "Update": user's input time
-    - "Update Email": user's input time + 3 minutes
-    - "Send Email": user's input time + 10 minutes
+    The chain (Update Tracker -> Update News -> Send Email) starts at the user's input time.
     """
     try:
         # Parse the input trigger time
-        base_time = datetime.fromisoformat(request.trigger_time)
+        trigger_time = datetime.fromisoformat(request.trigger_time)
 
-        # Calculate the three trigger times
-        update_time = base_time
-        update_email_time = base_time + timedelta(minutes=3)
-        send_email_time = base_time + timedelta(minutes=10)
-
-        # Read existing schedule.json to preserve other fields
+        # Read existing schedule.json to preserve enable flag
         with open("schedule.json", "r") as f:
             schedule_data = json.load(f)
 
-        # Update the trigger times (preserve enable flags)
-        schedule_data["Update"]["trigger_time"] = update_time.isoformat()
-        schedule_data["Update Email"]["trigger_time"] = update_email_time.isoformat()
-        schedule_data["Send Email"]["trigger_time"] = send_email_time.isoformat()
+        # Update the trigger time
+        schedule_data["Update"]["trigger_time"] = trigger_time.isoformat()
 
         # Write back to schedule.json
         with open("schedule.json", "w") as f:
             json.dump(schedule_data, f, indent=2)
 
-        logger.info(f"Schedule updated - Update: {update_time.isoformat()}, "
-                   f"Update Email: {update_email_time.isoformat()}, "
-                   f"Send Email: {send_email_time.isoformat()}")
+        logger.info(f"Schedule updated - Chain starts at: {trigger_time.isoformat()}")
 
-        # Re-setup scheduled tasks with new times
+        # Re-setup scheduled tasks with new time
         setup_scheduled_tasks()
 
         return {
             "success": True,
             "schedule": {
-                "Update": update_time.isoformat(),
-                "Update Email": update_email_time.isoformat(),
-                "Send Email": send_email_time.isoformat()
+                "trigger_time": trigger_time.isoformat()
             }
         }
     except ValueError as e:
@@ -1562,17 +1534,73 @@ async def scheduled_update_stocks():
         raise
 
 
-def setup_scheduled_tasks():
-    """Read schedule.json and schedule jobs for enabled tasks.
+async def scheduled_chain_execution():
+    """Master orchestrator that chains Update Tracker -> Update News -> Send Email.
 
-    This function removes all existing scheduled jobs and re-adds them based on
-    the current schedule.json configuration. This allows dynamic rescheduling
-    without server restart.
+    Each task is executed sequentially with 5-second delays between them.
+    If one task fails, the chain continues to the next task.
+    """
+    logger.info("=" * 60)
+    logger.info("SCHEDULED CHAIN: Starting chained execution")
+    logger.info("=" * 60)
+
+    # Task 1: Update Tracker
+    logger.info("SCHEDULED CHAIN: Task 1/3 - Update Tracker - Starting")
+    try:
+        result = _perform_update_stocks()
+        logger.info(f"SCHEDULED CHAIN: Task 1/3 - Update Tracker - Completed: {result}")
+        await broadcast_sse_event("stocks-updated", result)
+    except Exception as e:
+        logger.error(f"SCHEDULED CHAIN: Task 1/3 - Update Tracker - Failed: {e}")
+
+    logger.info("SCHEDULED CHAIN: Waiting 5 seconds before next task...")
+    await asyncio.sleep(5)
+
+    # Task 2: Update News
+    logger.info("SCHEDULED CHAIN: Task 2/3 - Update News - Starting")
+    try:
+        result = await _perform_update_email()
+        logger.info(f"SCHEDULED CHAIN: Task 2/3 - Update News - Completed: {result}")
+        await broadcast_sse_event("email-updated", result)
+    except Exception as e:
+        logger.error(f"SCHEDULED CHAIN: Task 2/3 - Update News - Failed: {e}")
+
+    logger.info("SCHEDULED CHAIN: Waiting 5 seconds before next task...")
+    await asyncio.sleep(5)
+
+    # Task 3: Send Email
+    logger.info("SCHEDULED CHAIN: Task 3/3 - Send Email - Starting")
+    try:
+        result = await _perform_send_email()
+        logger.info(f"SCHEDULED CHAIN: Task 3/3 - Send Email - Completed: {result}")
+        await broadcast_sse_event("email-sent", result)
+    except Exception as e:
+        logger.error(f"SCHEDULED CHAIN: Task 3/3 - Send Email - Failed: {e}")
+
+    logger.info("=" * 60)
+    logger.info("SCHEDULED CHAIN: All tasks completed")
+    logger.info("=" * 60)
+
+
+def setup_scheduled_tasks():
+    """Read schedule.json and schedule a chained job for all tasks.
+
+    This function schedules a single chained job that executes:
+    Update Tracker -> (5s delay) -> Update News -> (5s delay) -> Send Email
+
+    The chain starts at the "Update" task's trigger_time. The other task times
+    in schedule.json are ignored since tasks now run sequentially.
     """
     logger.info("Setting up scheduled tasks from schedule.json...")
 
     # Remove all existing scheduled jobs to allow clean rescheduling
-    job_ids = ["update_stocks_scheduled", "update_email_scheduled", "send_email_scheduled"]
+    # Include both old individual job IDs and new chained job ID for backward compatibility
+    job_ids = [
+        "update_stocks_scheduled",
+        "update_email_scheduled",
+        "send_email_scheduled",
+        "chained_execution_scheduled"
+    ]
     for job_id in job_ids:
         existing_job = scheduler.get_job(job_id)
         if existing_job:
@@ -1591,7 +1619,8 @@ def setup_scheduled_tasks():
 
     now = datetime.now(ZoneInfo("Asia/Taipei"))
 
-    # Process Update (stock prices) task
+    # Use the "Update" task's trigger_time as the chain start time
+    # The chain will run all three tasks sequentially with 5-second delays
     update_config = schedule_data.get("Update", {})
     if update_config.get("enable", False):
         trigger_time_str = update_config.get("trigger_time")
@@ -1599,54 +1628,16 @@ def setup_scheduled_tasks():
             trigger_time = datetime.fromisoformat(trigger_time_str)
             if trigger_time > now:
                 scheduler.add_job(
-                    scheduled_update_stocks,
+                    scheduled_chain_execution,
                     trigger=DateTrigger(run_date=trigger_time),
-                    id="update_stocks_scheduled",
+                    id="chained_execution_scheduled",
                     replace_existing=True
                 )
-                logger.info(f"Scheduled task 'Update' for {trigger_time_str}")
+                logger.info(f"Scheduled chained execution (Update Tracker -> Update News -> Send Email) for {trigger_time_str}")
             else:
-                logger.warning(f"Skipping 'Update' - trigger time {trigger_time_str} has already passed")
+                logger.warning(f"Skipping chained execution - trigger time {trigger_time_str} has already passed")
     else:
-        logger.info("'Update' task is disabled in schedule.json")
-
-    # Process Update Email task
-    update_email_config = schedule_data.get("Update Email", {})
-    if update_email_config.get("enable", False):
-        trigger_time_str = update_email_config.get("trigger_time")
-        if trigger_time_str:
-            trigger_time = datetime.fromisoformat(trigger_time_str)
-            if trigger_time > now:
-                scheduler.add_job(
-                    scheduled_update_email,
-                    trigger=DateTrigger(run_date=trigger_time),
-                    id="update_email_scheduled",
-                    replace_existing=True
-                )
-                logger.info(f"Scheduled task 'Update Email' for {trigger_time_str}")
-            else:
-                logger.warning(f"Skipping 'Update Email' - trigger time {trigger_time_str} has already passed")
-    else:
-        logger.info("'Update Email' task is disabled in schedule.json")
-
-    # Process Send Email task
-    send_email_config = schedule_data.get("Send Email", {})
-    if send_email_config.get("enable", False):
-        trigger_time_str = send_email_config.get("trigger_time")
-        if trigger_time_str:
-            trigger_time = datetime.fromisoformat(trigger_time_str)
-            if trigger_time > now:
-                scheduler.add_job(
-                    scheduled_send_email,
-                    trigger=DateTrigger(run_date=trigger_time),
-                    id="send_email_scheduled",
-                    replace_existing=True
-                )
-                logger.info(f"Scheduled task 'Send Email' for {trigger_time_str}")
-            else:
-                logger.warning(f"Skipping 'Send Email' - trigger time {trigger_time_str} has already passed")
-    else:
-        logger.info("'Send Email' task is disabled in schedule.json")
+        logger.info("Chained execution is disabled (Update task is disabled in schedule.json)")
 
     # Log summary of all scheduled jobs
     scheduled_jobs = scheduler.get_jobs()

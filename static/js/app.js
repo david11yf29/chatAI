@@ -32,20 +32,20 @@ function connectSSE() {
         console.log('SSE: stocks-updated event received', JSON.parse(e.data));
         // Refresh the UI with latest stock data
         fetchStocks();
-        // Re-check schedule status to update rectangle indicator
-        checkScheduleStatus();
+        // Turn off the blue rectangle indicator (Update task completed)
+        document.querySelector('.rect-blue')?.classList.remove('scheduled');
     });
 
     eventSource.addEventListener('email-updated', (e) => {
         console.log('SSE: email-updated event received', JSON.parse(e.data));
-        // Re-check schedule status to update rectangle indicator
-        checkScheduleStatus();
+        // Turn off the teal rectangle indicator (Update Email task completed)
+        document.querySelector('.rect-teal')?.classList.remove('scheduled');
     });
 
     eventSource.addEventListener('email-sent', (e) => {
         console.log('SSE: email-sent event received', JSON.parse(e.data));
-        // Re-check schedule status to update rectangle indicator
-        checkScheduleStatus();
+        // Turn off the orange rectangle indicator (Send Email task completed)
+        document.querySelector('.rect-orange')?.classList.remove('scheduled');
     });
 
     eventSource.onerror = (e) => {
