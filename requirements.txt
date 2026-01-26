@@ -1,3 +1,4 @@
+# Stock Tracker dependencies
 fastapi
 uvicorn[standard]
 openai
