@@ -396,11 +396,12 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
 
 9. **Collect All Stocks for Diff Section**
    - Creates array of ALL stocks (not just those with price changes)
-   - Includes distance from buy price and market close time for each:
+   - Includes buy price, distance from buy price, and market close time for each:
      ```python
      {
          "symbol": s["symbol"],
          "price": s["price"],
+         "buyPrice": s.get("buyPrice", 0),
          "diff": s.get("diff", 0),
          "date": s.get("date", "")
      }
@@ -519,9 +520,10 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
 
    c. **Generate Need to Drop Until Buy Price Section**
       - For each stock in `needToDropUntilBuyPrice`:
-        - Calls `generate_diff_card_html()` (lines 888-914)
+        - Calls `generate_diff_card_html()` (lines 944-970)
         - Generates card with:
-          - Symbol and current price
+          - Symbol, current price, and target buy price
+          - Format: `[SYMBOL] [$price] → Buy: [$buyPrice]`
           - Diff to buy price with color-coded badge
           - Green: below buy price (good opportunity)
           - Red: above buy price (overpriced)

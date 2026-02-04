@@ -43,30 +43,35 @@
       {
         "symbol": "NVDA",
         "price": 187.67,
+        "buyPrice": 150.0,
         "diff": -20.07,
         "date": "2026-01-24T05:00:00+08:00"
       },
       {
         "symbol": "MSFT",
         "price": 465.95,
+        "buyPrice": 450.0,
         "diff": -3.42,
         "date": "2026-01-24T05:00:00+08:00"
       },
       {
         "symbol": "SNDK",
         "price": 473.83,
+        "buyPrice": 400.0,
         "diff": -15.58,
         "date": "2026-01-24T05:00:00+08:00"
       },
       {
         "symbol": "AAOI",
         "price": 35.72,
+        "buyPrice": 25.0,
         "diff": -30.01,
         "date": "2026-01-24T05:00:00+08:00"
       },
       {
         "symbol": "MU",
         "price": 399.65,
+        "buyPrice": 250.0,
         "diff": -37.45,
         "date": "2026-01-24T05:00:00+08:00"
       }
