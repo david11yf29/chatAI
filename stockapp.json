@@ -6,22 +6,22 @@
   "search": "yahoo finance",
   "stocks": [
     {
-      "symbol": "NVDA",
-      "name": "NVIDIA Corporation",
-      "price": 187.67,
-      "changePercent": 1.53,
+      "symbol": "TSLA",
+      "name": "TSLA",
+      "price": 0.0,
+      "changePercent": 0.0,
       "date": "2026-01-24T05:00:00+08:00",
-      "buyPrice": 150.0,
-      "diff": -20.07
+      "buyPrice": 380.0,
+      "diff": 0
     },
     {
-      "symbol": "MSFT",
-      "name": "Microsoft Corporation",
-      "price": 465.95,
-      "changePercent": 3.28,
+      "symbol": "META",
+      "name": "META",
+      "price": 0.0,
+      "changePercent": 0.0,
       "date": "2026-01-24T05:00:00+08:00",
-      "buyPrice": 450.0,
-      "diff": -3.42
+      "buyPrice": 630.0,
+      "diff": 0
     },
     {
       "symbol": "SNDK",
@@ -29,8 +29,8 @@
       "price": 473.83,
       "changePercent": -5.88,
       "date": "2026-01-24T05:00:00+08:00",
-      "buyPrice": 400.0,
-      "diff": -15.58
+      "buyPrice": 600.0,
+      "diff": 26.63
     },
     {
       "symbol": "AAOI",
@@ -38,17 +38,17 @@
       "price": 35.72,
       "changePercent": -6.37,
       "date": "2026-01-24T05:00:00+08:00",
-      "buyPrice": 25.0,
-      "diff": -30.01
+      "buyPrice": 47.0,
+      "diff": 31.58
     },
     {
-      "symbol": "MU",
-      "name": "Micron Technology, Inc.",
-      "price": 399.65,
-      "changePercent": 0.52,
+      "symbol": "AAPL",
+      "name": "AAPL",
+      "price": 0.0,
+      "changePercent": 0.0,
       "date": "2026-01-24T05:00:00+08:00",
-      "buyPrice": 250.0,
-      "diff": -37.45
+      "buyPrice": 255.0,
+      "diff": 0
     }
   ]
 }
