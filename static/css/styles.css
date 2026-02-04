@@ -41,6 +41,7 @@ h1 {
     background-color: #f9f9f9;
     border-top: 1px solid #eee;
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     gap: 12px;
@@ -458,4 +459,71 @@ tbody tr.drag-over-bottom::after {
     height: 3px;
     background-color: #007bff;
     z-index: 100;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 480px) {
+    body {
+        font-size: 14px;
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 1.25rem;
+        padding: 12px 16px;
+    }
+
+    .actions-row {
+        padding: 12px;
+        gap: 8px;
+    }
+
+    .trigger-time-input {
+        width: 100%;
+        flex-basis: 100%;
+        margin-bottom: 4px;
+    }
+
+    .empty-rectangle {
+        width: 80px;
+    }
+
+    #schedule-btn {
+        min-width: 70px;
+        padding: 0 8px;
+    }
+
+    #go-btn {
+        min-width: 40px;
+        padding: 0 8px;
+    }
+
+    /* Shrink Price and Change columns */
+    thead th {
+        padding: 10px 12px;
+        font-size: 0.8rem;
+    }
+
+    thead th:nth-child(3),
+    thead th:nth-child(4) {
+        width: 18%;
+    }
+
+    td {
+        padding: 10px 12px;
+        font-size: 0.85rem;
+    }
+
+    .editable-input {
+        font-size: 0.85rem;
+        height: 30px;
+    }
+
+    tbody tr td:nth-child(2) {
+        padding-left: 24px;
+    }
+
+    thead th:nth-child(2) {
+        padding-left: 24px;
+    }
 }
