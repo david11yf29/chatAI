@@ -430,6 +430,23 @@ async def update_stocks(request: StocksUpdateRequest):
                 info = ticker.info
                 stock_dict["name"] = info.get("longName") or info.get("shortName") or symbol
 
+                # Get next earnings/financial statements date
+                try:
+                    calendar = ticker.calendar
+                    earnings_dates = calendar.get('Earnings Date', []) if calendar else []
+                    if earnings_dates and len(earnings_dates) > 0:
+                        next_earnings = earnings_dates[0]
+                        # Convert to ISO format string
+                        if hasattr(next_earnings, 'isoformat'):
+                            stock_dict["financialStatementsDate"] = next_earnings.isoformat()
+                        else:
+                            stock_dict["financialStatementsDate"] = str(next_earnings)
+                    else:
+                        stock_dict["financialStatementsDate"] = None
+                except Exception as cal_error:
+                    logger.warning(f"Could not get earnings date for {symbol}: {cal_error}")
+                    stock_dict["financialStatementsDate"] = None
+
                 # Get last closed price and calculate percentage change
                 history = ticker.history(period="2d")
                 if not history.empty:
@@ -564,6 +581,23 @@ def _perform_update_stocks() -> dict:
                 ticker = yf.Ticker(symbol)
                 info = ticker.info
                 stock_dict["name"] = info.get("longName") or info.get("shortName") or symbol
+
+                # Get next earnings/financial statements date
+                try:
+                    calendar = ticker.calendar
+                    earnings_dates = calendar.get('Earnings Date', []) if calendar else []
+                    if earnings_dates and len(earnings_dates) > 0:
+                        next_earnings = earnings_dates[0]
+                        # Convert to ISO format string
+                        if hasattr(next_earnings, 'isoformat'):
+                            stock_dict["financialStatementsDate"] = next_earnings.isoformat()
+                        else:
+                            stock_dict["financialStatementsDate"] = str(next_earnings)
+                    else:
+                        stock_dict["financialStatementsDate"] = None
+                except Exception as cal_error:
+                    logger.warning(f"Could not get earnings date for {symbol}: {cal_error}")
+                    stock_dict["financialStatementsDate"] = None
 
                 # Get last closed price and calculate percentage change
                 history = ticker.history(period="2d")
