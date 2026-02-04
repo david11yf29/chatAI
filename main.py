@@ -852,17 +852,19 @@ async def _perform_update_email() -> dict:
                 "price": s["price"],
                 "changePercent": s["changePercent"],
                 "date": s.get("date", ""),
+                "financialStatementsDate": s.get("financialStatementsDate"),
                 "news": news
             })
 
-    # Get all stocks for needToDropUntilBuyPrice (symbol, price, buyPrice, diff, date)
+    # Get all stocks for needToDropUntilBuyPrice (symbol, price, buyPrice, diff, date, financialStatementsDate)
     diff_to_buy = [
         {
             "symbol": s["symbol"],
             "price": s["price"],
             "buyPrice": s.get("buyPrice", 0),
             "diff": s.get("diff", 0),
-            "date": s.get("date", "")
+            "date": s.get("date", ""),
+            "financialStatementsDate": s.get("financialStatementsDate")
         }
         for s in stock_data["stocks"]
     ]
