@@ -430,13 +430,22 @@ async def update_stocks(request: StocksUpdateRequest):
                 info = ticker.info
                 stock_dict["name"] = info.get("longName") or info.get("shortName") or symbol
 
-                # Get next earnings/financial statements date
+                # Get next earnings/financial statements date (only future dates)
                 try:
                     calendar = ticker.calendar
                     earnings_dates = calendar.get('Earnings Date', []) if calendar else []
-                    if earnings_dates and len(earnings_dates) > 0:
-                        next_earnings = earnings_dates[0]
-                        # Convert to ISO format string
+                    today = datetime.now().date()
+                    # Filter to only future dates
+                    future_dates = []
+                    for ed in earnings_dates:
+                        if hasattr(ed, 'date'):
+                            ed_date = ed.date()
+                        else:
+                            ed_date = ed
+                        if ed_date >= today:
+                            future_dates.append(ed)
+                    if future_dates:
+                        next_earnings = future_dates[0]
                         if hasattr(next_earnings, 'isoformat'):
                             stock_dict["financialStatementsDate"] = next_earnings.isoformat()
                         else:
@@ -582,13 +591,22 @@ def _perform_update_stocks() -> dict:
                 info = ticker.info
                 stock_dict["name"] = info.get("longName") or info.get("shortName") or symbol
 
-                # Get next earnings/financial statements date
+                # Get next earnings/financial statements date (only future dates)
                 try:
                     calendar = ticker.calendar
                     earnings_dates = calendar.get('Earnings Date', []) if calendar else []
-                    if earnings_dates and len(earnings_dates) > 0:
-                        next_earnings = earnings_dates[0]
-                        # Convert to ISO format string
+                    today = datetime.now().date()
+                    # Filter to only future dates
+                    future_dates = []
+                    for ed in earnings_dates:
+                        if hasattr(ed, 'date'):
+                            ed_date = ed.date()
+                        else:
+                            ed_date = ed
+                        if ed_date >= today:
+                            future_dates.append(ed)
+                    if future_dates:
+                        next_earnings = future_dates[0]
                         if hasattr(next_earnings, 'isoformat'):
                             stock_dict["financialStatementsDate"] = next_earnings.isoformat()
                         else:
