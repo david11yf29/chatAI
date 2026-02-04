@@ -414,3 +414,48 @@ tbody tr td:nth-child(2) {
     font-style: italic;
     padding: 24px 20px !important;
 }
+
+/* Drag-and-drop styles */
+tbody tr[draggable="true"] {
+    cursor: grab;
+}
+
+tbody tr[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+tbody tr.dragging {
+    opacity: 0.4;
+    background-color: #e0e0e0;
+}
+
+/* Drop indicator line - shows where the item will be inserted */
+tbody tr.drag-over-top {
+    position: relative;
+}
+
+tbody tr.drag-over-top::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #007bff;
+    z-index: 100;
+}
+
+tbody tr.drag-over-bottom {
+    position: relative;
+}
+
+tbody tr.drag-over-bottom::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #007bff;
+    z-index: 100;
+}

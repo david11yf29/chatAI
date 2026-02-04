@@ -276,6 +276,10 @@ class StocksUpdateRequest(BaseModel):
 class ScheduleRequest(BaseModel):
     trigger_time: str  # ISO 8601 format, e.g., "2026-01-23T07:00:00+08:00"
 
+class ReorderRequest(BaseModel):
+    fromIndex: int
+    toIndex: int
+
 @app.get("/")
 async def root():
     return FileResponse("static/index.html")
@@ -632,6 +636,45 @@ async def delete_stock(symbol: str):
         json.dump(data, f, indent=2)
 
     return {"message": f"Stock {symbol} removed successfully", "success": True}
+
+
+@app.post("/api/stocks/reorder")
+async def reorder_stocks(request: ReorderRequest):
+    """Reorder stocks by moving a stock from one position to another.
+
+    Args:
+        request: Contains fromIndex and toIndex for the reorder operation
+
+    Returns:
+        Updated stocks list after reordering
+    """
+    from_index = request.fromIndex
+    to_index = request.toIndex
+
+    # Read existing data
+    with open("stockapp.json", "r") as f:
+        data = json.load(f)
+
+    stocks = data.get("stocks", [])
+
+    # Validate indices
+    if from_index < 0 or from_index >= len(stocks):
+        return {"success": False, "error": f"Invalid fromIndex: {from_index}"}
+    if to_index < 0 or to_index >= len(stocks):
+        return {"success": False, "error": f"Invalid toIndex: {to_index}"}
+
+    # Reorder: remove from old position and insert at new position
+    stock = stocks.pop(from_index)
+    stocks.insert(to_index, stock)
+
+    # Save updated data back to stockapp.json
+    data["stocks"] = stocks
+    with open("stockapp.json", "w") as f:
+        json.dump(data, f, indent=2)
+
+    logger.info(f"Stocks reordered: moved index {from_index} to {to_index}")
+
+    return {"success": True, "stocks": stocks}
 
 
 def get_stock_news(symbol: str, name: str, change_percent: float) -> str:
