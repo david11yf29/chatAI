@@ -689,10 +689,20 @@ Return ONLY the final summary. No planning text, no "I will", no "Let me" - just
 
         response = client.chat.completions.create(
             model="supermind-agent-v1",
-            messages=messages
+            messages=messages,
+            extra_query={"debug": "true"}  # Enable debug mode to see agent execution traces
         )
 
-        final_response = response.choices[0].message.content or ""
+        # Debug logging to diagnose empty responses
+        raw_content = response.choices[0].message.content
+        logger.info(f"[get_stock_news] Raw content type: {type(raw_content)}, value: {repr(raw_content)[:500]}")
+        logger.info(f"[get_stock_news] Finish reason: {response.choices[0].finish_reason}")
+
+        # Log debug metadata if present (from debug=true)
+        if hasattr(response, 'model_extra') and response.model_extra:
+            logger.info(f"[get_stock_news] Debug metadata: {str(response.model_extra)[:1000]}")
+
+        final_response = raw_content or ""
         logger.info(f"[get_stock_news] Response for {symbol}: {final_response[:200] if final_response else 'EMPTY'}")
 
     except Exception as e:
