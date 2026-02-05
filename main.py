@@ -1692,8 +1692,8 @@ async def scheduled_chain_execution():
     except Exception as e:
         logger.error(f"SCHEDULED CHAIN: Task 1/3 - Update Tracker - Failed: {e}")
 
-    logger.info("SCHEDULED CHAIN: Waiting 5 seconds before next task...")
-    await asyncio.sleep(5)
+    logger.info("SCHEDULED CHAIN: Waiting 10 seconds before next task...")
+    await asyncio.sleep(10)
 
     # Task 2: Update News
     logger.info("SCHEDULED CHAIN: Task 2/3 - Update News - Starting")
@@ -1704,8 +1704,8 @@ async def scheduled_chain_execution():
     except Exception as e:
         logger.error(f"SCHEDULED CHAIN: Task 2/3 - Update News - Failed: {e}")
 
-    logger.info("SCHEDULED CHAIN: Waiting 5 seconds before next task...")
-    await asyncio.sleep(5)
+    logger.info("SCHEDULED CHAIN: Waiting 10 seconds before next task...")
+    await asyncio.sleep(10)
 
     # Task 3: Send Email
     logger.info("SCHEDULED CHAIN: Task 3/3 - Send Email - Starting")
