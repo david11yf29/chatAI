@@ -396,16 +396,18 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
 
 9. **Collect All Stocks for Diff Section**
    - Creates array of ALL stocks (not just those with price changes)
-   - Includes buy price, distance from buy price, and market close time for each:
+   - Includes buy price, distance from buy price, market close time, and earnings date for each:
      ```python
      {
          "symbol": s["symbol"],
          "price": s["price"],
          "buyPrice": s.get("buyPrice", 0),
          "diff": s.get("diff", 0),
-         "date": s.get("date", "")
+         "date": s.get("date", ""),
+         "financialStatementsDate": s.get("financialStatementsDate")
      }
      ```
+   - **Note:** `financialStatementsDate` is copied from `stockapp.json` (set by Update Tracker via yfinance earnings calendar)
 
 10. **Update email.json**
     - **dailyPriceChange:** Array of stocks with >3% change + AI-generated news + date
@@ -986,11 +988,16 @@ All async buttons follow this pattern:
       "changePercent": 1.53,
       "date": "2026-01-24T05:00:00+08:00",
       "buyPrice": 150.0,
-      "diff": -20.07
+      "diff": -20.07,
+      "financialStatementsDate": "2026-02-26"
     }
   ]
 }
 ```
+
+| Field | Description |
+|-------|-------------|
+| `financialStatementsDate` | Next earnings date from yfinance calendar (null if unavailable or no future dates) |
 
 ### email.json Structure
 ```json
@@ -1001,8 +1008,31 @@ All async buttons follow this pattern:
   "to": ["email1@example.com", "email2@example.com"],
   "subject": "Stocker Tracker Report",
   "content": {
-    "dailyPriceChange": [...],
-    "needToDropUntilBuyPrice": [...]
+    "dailyPriceChange": [
+      {
+        "symbol": "NVDA",
+        "name": "NVIDIA Corporation",
+        "price": 187.67,
+        "changePercent": -5.23,
+        "date": "2026-01-24T05:00:00+08:00",
+        "news": "AI news summary..."
+      }
+    ],
+    "needToDropUntilBuyPrice": [
+      {
+        "symbol": "NVDA",
+        "price": 187.67,
+        "buyPrice": 150.0,
+        "diff": -20.07,
+        "date": "2026-01-24T05:00:00+08:00",
+        "financialStatementsDate": "2026-02-26"
+      }
+    ]
   }
 }
 ```
+
+| Array | `financialStatementsDate` included? |
+|-------|-------------------------------------|
+| `dailyPriceChange` | No |
+| `needToDropUntilBuyPrice` | Yes (copied from stockapp.json during Update News) |
