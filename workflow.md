@@ -346,7 +346,7 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
    - Reads `stockapp.json` to get current portfolio
 
 7. **Filter Significant Price Changes**
-   - For each stock where `|changePercent| > 3`:
+   - For each stock where `|changePercent| > 5`:
 
    8. **Fetch News via AI (`get_stock_news()` function, lines 637-723)**
 
@@ -396,18 +396,21 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
 
 9. **Collect All Stocks for Diff Section**
    - Creates array of ALL stocks (not just those with price changes)
-   - Includes distance from buy price and market close time for each:
+   - Includes buy price, distance from buy price, market close time, and earnings date for each:
      ```python
      {
          "symbol": s["symbol"],
          "price": s["price"],
+         "buyPrice": s.get("buyPrice", 0),
          "diff": s.get("diff", 0),
-         "date": s.get("date", "")
+         "date": s.get("date", ""),
+         "financialStatementsDate": s.get("financialStatementsDate")
      }
      ```
+   - **Note:** `financialStatementsDate` is copied from `stockapp.json` (set by Update Tracker via yfinance earnings calendar)
 
 10. **Update email.json**
-    - **dailyPriceChange:** Array of stocks with >3% change + AI-generated news + date
+    - **dailyPriceChange:** Array of stocks with >5% change + AI-generated news + date
     - **needToDropUntilBuyPrice:** All stocks with buy price comparison + date
 
 11. **Return Response**
@@ -519,9 +522,10 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
 
    c. **Generate Need to Drop Until Buy Price Section**
       - For each stock in `needToDropUntilBuyPrice`:
-        - Calls `generate_diff_card_html()` (lines 888-914)
+        - Calls `generate_diff_card_html()` (lines 944-970)
         - Generates card with:
-          - Symbol and current price
+          - Symbol, current price, and target buy price
+          - Format: `[SYMBOL] [$price] → Buy: [$buyPrice]`
           - Diff to buy price with color-coded badge
           - Green: below buy price (good opportunity)
           - Red: above buy price (overpriced)
@@ -680,9 +684,9 @@ Run the chained execution (Update Tracker → Update News → Send Email) immedi
    - Returns immediately with success response
    - Background task runs the chain:
      - Task 1/3: Update Tracker (fetches stock prices)
-     - 5-second delay
+     - 10-second delay
      - Task 2/3: Update News (generates AI news summaries)
-     - 5-second delay
+     - 10-second delay
      - Task 3/3: Send Email (sends report via Gmail)
 
 5. **UI Feedback (Success)**
@@ -720,9 +724,9 @@ In addition to manual button clicks, the "Update Tracker", "Update News", and "S
 **All three tasks run as a chain, not independently.** When the scheduled time arrives:
 
 1. **Update Tracker** (fetch stock prices) runs first
-2. Wait **5 seconds**
+2. Wait **10 seconds**
 3. **Update News** (generate AI news summaries) runs
-4. Wait **5 seconds**
+4. Wait **10 seconds**
 5. **Send Email** (send report via Gmail) runs
 
 This ensures data flows correctly: stock prices are updated before generating email content, and email content is generated before sending.
@@ -741,7 +745,7 @@ This ensures data flows correctly: stock prices are updated before generating em
 }
 ```
 
-The chain starts at `Update.trigger_time`. All three tasks run sequentially with 5-second delays.
+The chain starts at `Update.trigger_time`. All three tasks run sequentially with 10-second delays.
 
 ### Configuration Fields
 
@@ -758,7 +762,7 @@ The chain starts at `Update.trigger_time`. All three tasks run sequentially with
 
 **Key Functions:**
 - `setup_scheduled_tasks()` - Reads `schedule.json` and schedules the chained job
-- `scheduled_chain_execution()` - Master orchestrator that runs Update Tracker → Update News → Send Email with 5-second delays
+- `scheduled_chain_execution()` - Master orchestrator that runs Update Tracker → Update News → Send Email with 10-second delays
 - Individual wrappers (`scheduled_update_stocks()`, etc.) still exist for potential standalone use
 
 ### Job ID
@@ -788,11 +792,11 @@ The chain starts at `Update.trigger_time`. All three tasks run sequentially with
    - **Task 1/3:** Update Tracker
      - Calls `_perform_update_stocks()`
      - Broadcasts `stocks-updated` SSE event
-   - **5-second delay**
+   - **10-second delay**
    - **Task 2/3:** Update News
      - Calls `_perform_update_email()`
      - Broadcasts `email-updated` SSE event
-   - **5-second delay**
+   - **10-second delay**
    - **Task 3/3:** Send Email
      - Calls `_perform_send_email()`
      - Broadcasts `email-sent` SSE event
@@ -858,10 +862,10 @@ SCHEDULED CHAIN: Starting chained execution
 ============================================================
 SCHEDULED CHAIN: Task 1/3 - Update Tracker - Starting
 SCHEDULED CHAIN: Task 1/3 - Update Tracker - Completed: {...}
-SCHEDULED CHAIN: Waiting 5 seconds before next task...
+SCHEDULED CHAIN: Waiting 10 seconds before next task...
 SCHEDULED CHAIN: Task 2/3 - Update News - Starting
 SCHEDULED CHAIN: Task 2/3 - Update News - Completed: {...}
-SCHEDULED CHAIN: Waiting 5 seconds before next task...
+SCHEDULED CHAIN: Waiting 10 seconds before next task...
 SCHEDULED CHAIN: Task 3/3 - Send Email - Starting
 SCHEDULED CHAIN: Task 3/3 - Send Email - Completed: {...}
 ============================================================
@@ -984,11 +988,16 @@ All async buttons follow this pattern:
       "changePercent": 1.53,
       "date": "2026-01-24T05:00:00+08:00",
       "buyPrice": 150.0,
-      "diff": -20.07
+      "diff": -20.07,
+      "financialStatementsDate": "2026-02-26"
     }
   ]
 }
 ```
+
+| Field | Description |
+|-------|-------------|
+| `financialStatementsDate` | Next earnings date from yfinance calendar (null if unavailable or no future dates) |
 
 ### email.json Structure
 ```json
@@ -999,8 +1008,31 @@ All async buttons follow this pattern:
   "to": ["email1@example.com", "email2@example.com"],
   "subject": "Stocker Tracker Report",
   "content": {
-    "dailyPriceChange": [...],
-    "needToDropUntilBuyPrice": [...]
+    "dailyPriceChange": [
+      {
+        "symbol": "NVDA",
+        "name": "NVIDIA Corporation",
+        "price": 187.67,
+        "changePercent": -5.23,
+        "date": "2026-01-24T05:00:00+08:00",
+        "news": "AI news summary..."
+      }
+    ],
+    "needToDropUntilBuyPrice": [
+      {
+        "symbol": "NVDA",
+        "price": 187.67,
+        "buyPrice": 150.0,
+        "diff": -20.07,
+        "date": "2026-01-24T05:00:00+08:00",
+        "financialStatementsDate": "2026-02-26"
+      }
+    ]
   }
 }
 ```
+
+| Array | `financialStatementsDate` included? |
+|-------|-------------------------------------|
+| `dailyPriceChange` | No |
+| `needToDropUntilBuyPrice` | Yes (copied from stockapp.json during Update News) |

@@ -1,3 +1,47 @@
+/* ============================================
+   FINANCE DASHBOARD - DARK THEME
+   Modern fintech-inspired design
+   ============================================ */
+
+:root {
+    /* Background layers */
+    --bg-base: #0a0a0f;
+    --bg-surface: #12121a;
+    --bg-card: #1a1a24;
+    --bg-elevated: #222230;
+
+    /* Accent colors */
+    --accent-primary: #6366f1;
+    --accent-primary-hover: #818cf8;
+    --accent-secondary: #06b6d4;
+    --accent-tertiary: #f59e0b;
+
+    /* Semantic colors */
+    --color-positive: #10b981;
+    --color-positive-bg: rgba(16, 185, 129, 0.1);
+    --color-negative: #ef4444;
+    --color-negative-bg: rgba(239, 68, 68, 0.1);
+
+    /* Text colors */
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+
+    /* Border & dividers */
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-default: rgba(255, 255, 255, 0.1);
+
+    /* Effects */
+    --glow-primary: rgba(99, 102, 241, 0.3);
+    --glow-positive: rgba(16, 185, 129, 0.3);
+    --glow-negative: rgba(239, 68, 68, 0.3);
+
+    /* Spacing */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -5,320 +49,400 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #f5f5f5;
-    padding: 20px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-base);
+    background-image:
+        radial-gradient(ellipse at top, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at bottom right, rgba(6, 182, 212, 0.05) 0%, transparent 50%);
+    min-height: 100vh;
+    padding: 24px;
+    color: var(--text-primary);
 }
 
 .container {
-    max-width: 600px;
+    max-width: 540px;
     margin: 0 auto;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.3),
+        0 10px 15px -3px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.03) inset;
     overflow: hidden;
+    position: relative;
 }
 
+/* Header */
 h1 {
-    background-color: #333;
-    color: #fff;
-    padding: 16px 20px;
-    font-size: 1.5rem;
+    background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-card) 100%);
+    color: var(--text-primary);
+    padding: 20px 24px;
+    font-size: 1.35rem;
+    font-weight: 600;
     text-align: center;
+    letter-spacing: -0.02em;
+    border-bottom: 1px solid var(--border-subtle);
+    position: relative;
 }
 
+h1::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 2px;
+}
+
+/* Action rows */
 .actions {
-    padding: 12px 20px;
-    background-color: #f9f9f9;
-    border-top: 1px solid #eee;
+    padding: 16px 20px;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-subtle);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
 }
 
 .actions-row {
-    padding: 12px 20px;
-    background-color: #f9f9f9;
-    border-top: 1px solid #eee;
+    padding: 16px 20px;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-subtle);
     display: flex;
-    justify-content: space-between;
+    flex-wrap: nowrap;
+    justify-content: center;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
 }
 
+/* Time input */
 .trigger-time-input {
-    flex: 1;
-    height: 33px;
+    width: 210px;
+    flex-shrink: 0;
+    height: 38px;
     padding: 0 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 0.9rem;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.trigger-time-input::placeholder {
+    color: var(--text-muted);
+    font-size: 0.8rem;
 }
 
 .trigger-time-input:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--glow-primary);
 }
 
+/* Status indicator rectangles */
 .empty-rectangle {
     display: flex;
     width: 100px;
-    height: 33px;
-    border-radius: 4px;
+    height: 38px;
+    border-radius: var(--radius-sm);
     overflow: hidden;
+    background: var(--bg-elevated);
+    padding: 4px;
+    gap: 4px;
 }
 
 .rect-part {
     flex: 1;
     height: 100%;
+    border-radius: 4px;
+    transition: all 0.3s ease;
 }
 
-/* Default: Light/faded colors (task not scheduled or already triggered) */
+/* Default: dim state */
 .rect-blue {
-    background-color: rgba(0, 123, 255, 0.2);
+    background: rgba(99, 102, 241, 0.2);
 }
 
 .rect-teal {
-    background-color: rgba(23, 162, 184, 0.2);
+    background: rgba(6, 182, 212, 0.2);
 }
 
 .rect-orange {
-    background-color: rgba(255, 149, 0, 0.2);
+    background: rgba(245, 158, 11, 0.2);
 }
 
-/* Scheduled state: Solid colors (task scheduled and pending) */
+/* Scheduled: bright with glow */
 .rect-blue.scheduled {
-    background-color: #007bff;
+    background: var(--accent-primary);
+    box-shadow: 0 0 12px var(--glow-primary);
 }
 
 .rect-teal.scheduled {
-    background-color: #17a2b8;
+    background: var(--accent-secondary);
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.4);
 }
 
 .rect-orange.scheduled {
-    background-color: #ff9500;
+    background: var(--accent-tertiary);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
 }
 
+/* Button base styles */
+button {
+    font-family: inherit;
+    font-weight: 500;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+    pointer-events: none;
+}
+
+button:disabled {
+    background: var(--bg-elevated) !important;
+    color: var(--text-muted) !important;
+    cursor: not-allowed;
+    box-shadow: none !important;
+}
+
+button:disabled::before {
+    display: none;
+}
+
+/* Schedule button - Purple gradient */
 #schedule-btn {
-    background-color: #6f42c1;
+    background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
     color: #fff;
-    border: none;
-    height: 33px;
-    padding: 0 16px;
-    border-radius: 4px;
-    cursor: pointer;
+    height: 38px;
+    padding: 0 18px;
     font-size: 0.9rem;
-    min-width: 80px;
+    min-width: 90px;
 }
 
-#schedule-btn:hover {
-    background-color: #5a32a3;
+#schedule-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #8b5cf6 0%, #818cf8 100%);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+    transform: translateY(-1px);
 }
 
-#schedule-btn:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-}
-
+/* Go button - Pink/Magenta gradient */
 #go-btn {
-    background-color: #e83e8c;
+    background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
     color: #fff;
-    border: none;
-    height: 33px;
-    padding: 0 12px;
-    border-radius: 4px;
-    cursor: pointer;
+    height: 38px;
+    padding: 0 14px;
     font-size: 0.9rem;
-    min-width: 50px;
+    min-width: 54px;
 }
 
-#go-btn:hover {
-    background-color: #d63384;
+#go-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #f472b6 0%, #fb7185 100%);
+    box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
+    transform: translateY(-1px);
 }
 
-#go-btn:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-}
-
+/* Add button - Green gradient */
 #add-btn {
-    background-color: #28a745;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: #fff;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
+    padding: 10px 18px;
     font-size: 0.9rem;
-    min-width: 80px;
+    min-width: 90px;
 }
 
-#add-btn:hover {
-    background-color: #218838;
+#add-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+    box-shadow: 0 4px 12px var(--glow-positive);
+    transform: translateY(-1px);
 }
 
-#add-btn:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-}
-
+/* Update button - Blue gradient */
 #update-btn {
-    background-color: #007bff;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: #fff;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
+    padding: 10px 18px;
     font-size: 0.9rem;
-    min-width: 80px;
+    min-width: 90px;
 }
 
-#update-btn:hover {
-    background-color: #0056b3;
+#update-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    transform: translateY(-1px);
 }
 
-#update-btn:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-}
-
+/* Update Email button - Cyan gradient */
 #update-email-btn {
-    background-color: #17a2b8;
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
     color: #fff;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
+    padding: 10px 18px;
     font-size: 0.9rem;
 }
 
-#update-email-btn:hover {
-    background-color: #138496;
+#update-email-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+    transform: translateY(-1px);
 }
 
-#update-email-btn:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-}
-
+/* Send Email button - Orange/Amber gradient */
 #send-email-btn {
-    background-color: #ff9500;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
     color: #fff;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
+    padding: 10px 18px;
     font-size: 0.9rem;
 }
 
-#send-email-btn:hover {
-    background-color: #e68600;
+#send-email-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    transform: translateY(-1px);
 }
 
-#send-email-btn:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-}
-
+/* Table styling */
 table {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
 }
 
-/* Header columns */
 thead th {
-    width: 25%;
-    padding: 12px 20px;
+    padding: 14px 20px;
     text-align: left;
-    border-bottom: 1px solid #eee;
-    background-color: #f9f9f9;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-surface);
     font-weight: 600;
-    color: #666;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
 }
 
-/* Remove column - no space reserved */
+/* Column widths: Symbol 30%, Price 15%, Change 15%, Buy Price 30% */
+thead th:nth-child(2) { width: 30%; }
+thead th:nth-child(3) { width: 15%; }
+thead th:nth-child(4) { width: 15%; }
+thead th:nth-child(5) { width: 30%; }
+
 thead th.remove-col {
     width: 0;
     padding: 0;
     border: none;
 }
 
-/* Symbol header - centered to match input */
 thead th:nth-child(2) {
     padding-left: 32px;
     padding-right: 8px;
     text-align: center;
 }
 
-/* Right-align Price, Change, Buy Price headers (columns 3, 4, 5) */
 thead th:nth-child(3),
 thead th:nth-child(4) {
     text-align: right;
+    padding-right: 12px;
 }
 
-/* Buy Price header - aligned with input (account for input padding + border) */
 thead th:nth-child(5) {
     text-align: right;
     padding-right: 29px;
 }
 
 td {
-    padding: 12px 20px;
+    padding: 14px 20px;
     text-align: left;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    font-size: 0.95rem;
 }
 
-tr:hover {
-    background-color: #e3f2fd;
+tbody tr {
+    position: relative;
+    transition: background-color 0.15s ease;
 }
 
-/* Right-align Price, Change, Buy Price data cells (skip remove-cell) */
+tbody tr:hover {
+    background: var(--bg-elevated);
+}
+
 tbody td:nth-child(3),
 tbody td:nth-child(4),
 tbody td:nth-child(5) {
     text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
+/* Editable inputs */
 .editable-input {
     width: 100%;
-    height: 33px;
-    padding: 0 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
     font-size: 0.9rem;
-    background-color: #fff;
-    box-sizing: border-box;
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    transition: all 0.2s ease;
 }
 
 .editable-input:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--glow-primary);
+    background: var(--bg-card);
 }
 
 .symbol-input {
     text-transform: uppercase;
     text-align: center;
+    font-weight: 600;
+    letter-spacing: 0.02em;
 }
 
 .buy-price-input {
     text-align: right;
+    font-variant-numeric: tabular-nums;
+    -moz-appearance: textfield;
 }
 
+/* Hide number input spinners */
+.buy-price-input::-webkit-outer-spin-button,
+.buy-price-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Price change colors */
 .positive-change {
-    color: #28a745;
-    font-weight: 500;
+    color: var(--color-positive);
+    font-weight: 600;
+    text-shadow: 0 0 20px var(--glow-positive);
 }
 
 .negative-change {
-    color: #dc3545;
-    font-weight: 500;
+    color: var(--color-negative);
+    font-weight: 600;
+    text-shadow: 0 0 20px var(--glow-negative);
 }
 
-/* Remove button styles */
-
-/* Remove cell - no space, positioned for absolute button */
+/* Remove button */
 tbody .remove-cell {
     width: 0;
     padding: 0;
@@ -326,22 +450,17 @@ tbody .remove-cell {
     position: relative;
 }
 
-/* Row needs relative positioning for absolute button */
-tbody tr {
-    position: relative;
-}
-
-/* Remove button - hidden by default, absolutely positioned on hover */
 .remove-btn {
-    background-color: #dc3545;
+    background: linear-gradient(135deg, var(--color-negative) 0%, #dc2626 100%);
     color: #fff;
     border: none;
-    width: 20px;
-    height: 20px;
-    padding: 0 0 2px 0;
+    width: 22px;
+    height: 22px;
+    padding: 0;
     border-radius: 50%;
     cursor: pointer;
     font-size: 14px;
+    font-weight: 500;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -351,38 +470,35 @@ tbody tr {
     transform: translateY(-50%);
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.2s ease;
+    transition: all 0.2s ease;
     z-index: 10;
 }
 
-/* Show button on row hover */
 tbody tr:hover .remove-btn {
     opacity: 1;
     pointer-events: auto;
 }
 
-/* Symbol cell - slightly indented for comfort, wider input area */
+.remove-btn:hover {
+    background: linear-gradient(135deg, #f87171 0%, var(--color-negative) 100%);
+    box-shadow: 0 4px 12px var(--glow-negative);
+    transform: translateY(-50%) scale(1.1);
+}
+
 tbody tr td:nth-child(2) {
     padding-left: 32px;
     padding-right: 8px;
 }
 
-.remove-btn:hover {
-    background-color: #c82333;
-}
-
-/* Loading overlay styles */
-.container {
-    position: relative;
-}
-
+/* Loading overlay */
 .loading-overlay {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(255, 255, 255, 0.8);
+    background: rgba(10, 10, 15, 0.85);
+    backdrop-filter: blur(4px);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -394,12 +510,13 @@ tbody tr td:nth-child(2) {
 }
 
 .spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #007bff;
+    width: 44px;
+    height: 44px;
+    border: 3px solid var(--bg-elevated);
+    border-top: 3px solid var(--accent-primary);
+    border-right: 3px solid var(--accent-secondary);
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
@@ -407,10 +524,140 @@ tbody tr td:nth-child(2) {
     100% { transform: rotate(360deg); }
 }
 
-/* Empty state message */
+/* Empty state */
 .empty-message {
     text-align: center !important;
-    color: #666;
+    color: var(--text-muted);
     font-style: italic;
-    padding: 24px 20px !important;
+    padding: 32px 20px !important;
+}
+
+/* Drag and drop */
+tbody tr[draggable="true"] {
+    cursor: grab;
+}
+
+tbody tr[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+tbody tr.dragging {
+    opacity: 0.4;
+    background: var(--bg-surface);
+}
+
+tbody tr.drag-over-top {
+    position: relative;
+}
+
+tbody tr.drag-over-top::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+    z-index: 100;
+    box-shadow: 0 0 8px var(--glow-primary);
+}
+
+tbody tr.drag-over-bottom {
+    position: relative;
+}
+
+tbody tr.drag-over-bottom::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+    z-index: 100;
+    box-shadow: 0 0 8px var(--glow-primary);
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+    body {
+        padding: 12px;
+        font-size: 14px;
+    }
+
+    h1 {
+        font-size: 1.15rem;
+        padding: 16px;
+    }
+
+    .actions-row {
+        padding: 14px;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .trigger-time-input {
+        width: 100%;
+        flex-basis: 100%;
+        flex-shrink: 1;
+        margin-bottom: 6px;
+    }
+
+    .empty-rectangle {
+        width: 80px;
+        height: 34px;
+    }
+
+    #schedule-btn {
+        min-width: 75px;
+        padding: 0 10px;
+        height: 34px;
+    }
+
+    #go-btn {
+        min-width: 44px;
+        padding: 0 10px;
+        height: 34px;
+    }
+
+    .actions {
+        padding: 14px;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .actions button {
+        flex: 1;
+        min-width: calc(50% - 4px);
+        padding: 10px 8px;
+        font-size: 0.8rem;
+    }
+
+    thead th {
+        padding: 12px 10px;
+        font-size: 0.7rem;
+    }
+
+    thead th:nth-child(3),
+    thead th:nth-child(4) {
+        width: 18%;
+    }
+
+    td {
+        padding: 12px 10px;
+        font-size: 0.85rem;
+    }
+
+    .editable-input {
+        font-size: 0.85rem;
+        height: 32px;
+    }
+
+    tbody tr td:nth-child(2) {
+        padding-left: 24px;
+    }
+
+    thead th:nth-child(2) {
+        padding-left: 24px;
+    }
 }

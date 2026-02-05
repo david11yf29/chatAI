@@ -6,49 +6,54 @@
   "search": "yahoo finance",
   "stocks": [
     {
-      "symbol": "NVDA",
-      "name": "NVIDIA Corporation",
-      "price": 187.67,
-      "changePercent": 1.53,
-      "date": "2026-01-24T05:00:00+08:00",
-      "buyPrice": 150.0,
-      "diff": -20.07
+      "symbol": "TSLA",
+      "name": "Tesla, Inc.",
+      "price": 404.5,
+      "changePercent": -4.14,
+      "date": "2026-02-05T05:00:00+08:00",
+      "buyPrice": 380.0,
+      "diff": -6.06,
+      "financialStatementsDate": "2026-04-22"
     },
     {
-      "symbol": "MSFT",
-      "name": "Microsoft Corporation",
-      "price": 465.95,
-      "changePercent": 3.28,
-      "date": "2026-01-24T05:00:00+08:00",
-      "buyPrice": 450.0,
-      "diff": -3.42
+      "symbol": "META",
+      "name": "Meta Platforms, Inc.",
+      "price": 671.73,
+      "changePercent": -2.89,
+      "date": "2026-02-05T05:00:00+08:00",
+      "buyPrice": 630.0,
+      "diff": -6.21,
+      "financialStatementsDate": "2026-04-30"
     },
     {
       "symbol": "SNDK",
       "name": "Sandisk Corporation",
-      "price": 473.83,
-      "changePercent": -5.88,
-      "date": "2026-01-24T05:00:00+08:00",
-      "buyPrice": 400.0,
-      "diff": -15.58
+      "price": 591.85,
+      "changePercent": -14.9,
+      "date": "2026-02-05T05:00:00+08:00",
+      "buyPrice": 600.0,
+      "diff": 1.38,
+      "financialStatementsDate": "2026-01-30"
     },
     {
       "symbol": "AAOI",
       "name": "Applied Optoelectronics, Inc.",
-      "price": 35.72,
-      "changePercent": -6.37,
-      "date": "2026-01-24T05:00:00+08:00",
-      "buyPrice": 25.0,
-      "diff": -30.01
+      "price": 39.0,
+      "changePercent": -15.44,
+      "date": "2026-02-05T05:00:00+08:00",
+      "buyPrice": 47.0,
+      "diff": 20.51,
+      "financialStatementsDate": "2025-11-07"
     },
     {
-      "symbol": "MU",
-      "name": "Micron Technology, Inc.",
-      "price": 399.65,
-      "changePercent": 0.52,
-      "date": "2026-01-24T05:00:00+08:00",
-      "buyPrice": 250.0,
-      "diff": -37.45
+      "symbol": "AAPL",
+      "name": "Apple Inc.",
+      "price": 275.4,
+      "changePercent": 2.2,
+      "date": "2026-02-05T05:00:00+08:00",
+      "buyPrice": 255.0,
+      "diff": -7.41,
+      "financialStatementsDate": "2026-05-01"
     }
   ]
 }
