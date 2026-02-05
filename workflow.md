@@ -684,9 +684,9 @@ Run the chained execution (Update Tracker → Update News → Send Email) immedi
    - Returns immediately with success response
    - Background task runs the chain:
      - Task 1/3: Update Tracker (fetches stock prices)
-     - 5-second delay
+     - 10-second delay
      - Task 2/3: Update News (generates AI news summaries)
-     - 5-second delay
+     - 10-second delay
      - Task 3/3: Send Email (sends report via Gmail)
 
 5. **UI Feedback (Success)**
@@ -724,9 +724,9 @@ In addition to manual button clicks, the "Update Tracker", "Update News", and "S
 **All three tasks run as a chain, not independently.** When the scheduled time arrives:
 
 1. **Update Tracker** (fetch stock prices) runs first
-2. Wait **5 seconds**
+2. Wait **10 seconds**
 3. **Update News** (generate AI news summaries) runs
-4. Wait **5 seconds**
+4. Wait **10 seconds**
 5. **Send Email** (send report via Gmail) runs
 
 This ensures data flows correctly: stock prices are updated before generating email content, and email content is generated before sending.
@@ -745,7 +745,7 @@ This ensures data flows correctly: stock prices are updated before generating em
 }
 ```
 
-The chain starts at `Update.trigger_time`. All three tasks run sequentially with 5-second delays.
+The chain starts at `Update.trigger_time`. All three tasks run sequentially with 10-second delays.
 
 ### Configuration Fields
 
@@ -762,7 +762,7 @@ The chain starts at `Update.trigger_time`. All three tasks run sequentially with
 
 **Key Functions:**
 - `setup_scheduled_tasks()` - Reads `schedule.json` and schedules the chained job
-- `scheduled_chain_execution()` - Master orchestrator that runs Update Tracker → Update News → Send Email with 5-second delays
+- `scheduled_chain_execution()` - Master orchestrator that runs Update Tracker → Update News → Send Email with 10-second delays
 - Individual wrappers (`scheduled_update_stocks()`, etc.) still exist for potential standalone use
 
 ### Job ID
@@ -792,11 +792,11 @@ The chain starts at `Update.trigger_time`. All three tasks run sequentially with
    - **Task 1/3:** Update Tracker
      - Calls `_perform_update_stocks()`
      - Broadcasts `stocks-updated` SSE event
-   - **5-second delay**
+   - **10-second delay**
    - **Task 2/3:** Update News
      - Calls `_perform_update_email()`
      - Broadcasts `email-updated` SSE event
-   - **5-second delay**
+   - **10-second delay**
    - **Task 3/3:** Send Email
      - Calls `_perform_send_email()`
      - Broadcasts `email-sent` SSE event
@@ -862,10 +862,10 @@ SCHEDULED CHAIN: Starting chained execution
 ============================================================
 SCHEDULED CHAIN: Task 1/3 - Update Tracker - Starting
 SCHEDULED CHAIN: Task 1/3 - Update Tracker - Completed: {...}
-SCHEDULED CHAIN: Waiting 5 seconds before next task...
+SCHEDULED CHAIN: Waiting 10 seconds before next task...
 SCHEDULED CHAIN: Task 2/3 - Update News - Starting
 SCHEDULED CHAIN: Task 2/3 - Update News - Completed: {...}
-SCHEDULED CHAIN: Waiting 5 seconds before next task...
+SCHEDULED CHAIN: Waiting 10 seconds before next task...
 SCHEDULED CHAIN: Task 3/3 - Send Email - Starting
 SCHEDULED CHAIN: Task 3/3 - Send Email - Completed: {...}
 ============================================================
