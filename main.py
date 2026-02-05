@@ -1001,10 +1001,12 @@ def generate_diff_card_html(stock: dict) -> str:
     price = stock.get("price", 0)
     buy_price = stock.get("buyPrice", 0)
     diff = stock.get("diff", 0)
+    earnings_date = stock.get("financialStatementsDate")
 
     formatted_price = format_price(price)
     formatted_buy_price = format_price(buy_price)
     diff_str, diff_color = format_diff_percent(diff)
+    formatted_earnings = earnings_date if earnings_date else "TBD"
 
     return f'''
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f7; border-radius: 12px; margin-bottom: 12px;">
@@ -1015,13 +1017,16 @@ def generate_diff_card_html(stock: dict) -> str:
                         <td style="vertical-align: middle; width: 20%;">
                             <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 600; color: #1d1d1f;">{symbol}</span>
                         </td>
-                        <td style="text-align: center; vertical-align: middle; width: 60%;">
+                        <td style="text-align: center; vertical-align: middle; width: 45%;">
                             <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 19px; font-weight: 600; color: #0071e3;">{formatted_price}</span>
                             <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 600; color: #0071e3; margin: 0 8px;">→</span>
                             <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; color: #86868b;">Buy: {formatted_buy_price}</span>
                         </td>
-                        <td style="text-align: right; vertical-align: middle; width: 20%;">
+                        <td style="text-align: center; vertical-align: middle; width: 20%;">
                             <span style="display: inline-block; padding: 6px 12px; background-color: {diff_color}; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 700; border-radius: 6px;">{diff_str}</span>
+                        </td>
+                        <td style="text-align: right; vertical-align: middle; width: 15%;">
+                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 500; color: #1d1d1f;">{formatted_earnings}</span>
                         </td>
                     </tr>
                 </table>
