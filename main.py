@@ -276,6 +276,10 @@ class StocksUpdateRequest(BaseModel):
 class ScheduleRequest(BaseModel):
     trigger_time: str  # ISO 8601 format, e.g., "2026-01-23T07:00:00+08:00"
 
+class ReorderRequest(BaseModel):
+    fromIndex: int
+    toIndex: int
+
 @app.get("/")
 async def root():
     return FileResponse("static/index.html")
@@ -426,6 +430,32 @@ async def update_stocks(request: StocksUpdateRequest):
                 info = ticker.info
                 stock_dict["name"] = info.get("longName") or info.get("shortName") or symbol
 
+                # Get next earnings/financial statements date (only future dates)
+                try:
+                    calendar = ticker.calendar
+                    earnings_dates = calendar.get('Earnings Date', []) if calendar else []
+                    today = datetime.now().date()
+                    # Filter to only future dates
+                    future_dates = []
+                    for ed in earnings_dates:
+                        if hasattr(ed, 'date'):
+                            ed_date = ed.date()
+                        else:
+                            ed_date = ed
+                        if ed_date >= today:
+                            future_dates.append(ed)
+                    if future_dates:
+                        next_earnings = future_dates[0]
+                        if hasattr(next_earnings, 'isoformat'):
+                            stock_dict["financialStatementsDate"] = next_earnings.isoformat()
+                        else:
+                            stock_dict["financialStatementsDate"] = str(next_earnings)
+                    else:
+                        stock_dict["financialStatementsDate"] = None
+                except Exception as cal_error:
+                    logger.warning(f"Could not get earnings date for {symbol}: {cal_error}")
+                    stock_dict["financialStatementsDate"] = None
+
                 # Get last closed price and calculate percentage change
                 history = ticker.history(period="2d")
                 if not history.empty:
@@ -561,6 +591,32 @@ def _perform_update_stocks() -> dict:
                 info = ticker.info
                 stock_dict["name"] = info.get("longName") or info.get("shortName") or symbol
 
+                # Get next earnings/financial statements date (only future dates)
+                try:
+                    calendar = ticker.calendar
+                    earnings_dates = calendar.get('Earnings Date', []) if calendar else []
+                    today = datetime.now().date()
+                    # Filter to only future dates
+                    future_dates = []
+                    for ed in earnings_dates:
+                        if hasattr(ed, 'date'):
+                            ed_date = ed.date()
+                        else:
+                            ed_date = ed
+                        if ed_date >= today:
+                            future_dates.append(ed)
+                    if future_dates:
+                        next_earnings = future_dates[0]
+                        if hasattr(next_earnings, 'isoformat'):
+                            stock_dict["financialStatementsDate"] = next_earnings.isoformat()
+                        else:
+                            stock_dict["financialStatementsDate"] = str(next_earnings)
+                    else:
+                        stock_dict["financialStatementsDate"] = None
+                except Exception as cal_error:
+                    logger.warning(f"Could not get earnings date for {symbol}: {cal_error}")
+                    stock_dict["financialStatementsDate"] = None
+
                 # Get last closed price and calculate percentage change
                 history = ticker.history(period="2d")
                 if not history.empty:
@@ -634,6 +690,45 @@ async def delete_stock(symbol: str):
     return {"message": f"Stock {symbol} removed successfully", "success": True}
 
 
+@app.post("/api/stocks/reorder")
+async def reorder_stocks(request: ReorderRequest):
+    """Reorder stocks by moving a stock from one position to another.
+
+    Args:
+        request: Contains fromIndex and toIndex for the reorder operation
+
+    Returns:
+        Updated stocks list after reordering
+    """
+    from_index = request.fromIndex
+    to_index = request.toIndex
+
+    # Read existing data
+    with open("stockapp.json", "r") as f:
+        data = json.load(f)
+
+    stocks = data.get("stocks", [])
+
+    # Validate indices
+    if from_index < 0 or from_index >= len(stocks):
+        return {"success": False, "error": f"Invalid fromIndex: {from_index}"}
+    if to_index < 0 or to_index >= len(stocks):
+        return {"success": False, "error": f"Invalid toIndex: {to_index}"}
+
+    # Reorder: remove from old position and insert at new position
+    stock = stocks.pop(from_index)
+    stocks.insert(to_index, stock)
+
+    # Save updated data back to stockapp.json
+    data["stocks"] = stocks
+    with open("stockapp.json", "w") as f:
+        json.dump(data, f, indent=2)
+
+    logger.info(f"Stocks reordered: moved index {from_index} to {to_index}")
+
+    return {"success": True, "stocks": stocks}
+
+
 def get_stock_news(symbol: str, name: str, change_percent: float) -> str:
     """Fetch relevant news summary for a stock using AI chat API with web search."""
     direction = "increased" if change_percent > 0 else "decreased"
@@ -689,10 +784,20 @@ Return ONLY the final summary. No planning text, no "I will", no "Let me" - just
 
         response = client.chat.completions.create(
             model="supermind-agent-v1",
-            messages=messages
+            messages=messages,
+            extra_query={"debug": "true"}  # Enable debug mode to see agent execution traces
         )
 
-        final_response = response.choices[0].message.content or ""
+        # Debug logging to diagnose empty responses
+        raw_content = response.choices[0].message.content
+        logger.info(f"[get_stock_news] Raw content type: {type(raw_content)}, value: {repr(raw_content)[:500]}")
+        logger.info(f"[get_stock_news] Finish reason: {response.choices[0].finish_reason}")
+
+        # Log debug metadata if present (from debug=true)
+        if hasattr(response, 'model_extra') and response.model_extra:
+            logger.info(f"[get_stock_news] Debug metadata: {str(response.model_extra)[:1000]}")
+
+        final_response = raw_content or ""
         logger.info(f"[get_stock_news] Response for {symbol}: {final_response[:200] if final_response else 'EMPTY'}")
 
     except Exception as e:
@@ -747,16 +852,19 @@ async def _perform_update_email() -> dict:
                 "price": s["price"],
                 "changePercent": s["changePercent"],
                 "date": s.get("date", ""),
+                "financialStatementsDate": s.get("financialStatementsDate"),
                 "news": news
             })
 
-    # Get all stocks for needToDropUntilBuyPrice (symbol, price, diff, date)
+    # Get all stocks for needToDropUntilBuyPrice (symbol, price, buyPrice, diff, date, financialStatementsDate)
     diff_to_buy = [
         {
             "symbol": s["symbol"],
             "price": s["price"],
+            "buyPrice": s.get("buyPrice", 0),
             "diff": s.get("diff", 0),
-            "date": s.get("date", "")
+            "date": s.get("date", ""),
+            "financialStatementsDate": s.get("financialStatementsDate")
         }
         for s in stock_data["stocks"]
     ]
@@ -891,10 +999,14 @@ def generate_diff_card_html(stock: dict) -> str:
     """Generate HTML for a Need to Drop Until Buy Price stock card."""
     symbol = stock.get("symbol", "")
     price = stock.get("price", 0)
+    buy_price = stock.get("buyPrice", 0)
     diff = stock.get("diff", 0)
+    earnings_date = stock.get("financialStatementsDate")
 
     formatted_price = format_price(price)
+    formatted_buy_price = format_price(buy_price)
     diff_str, diff_color = format_diff_percent(diff)
+    formatted_earnings = earnings_date if earnings_date else "TBD"
 
     return f'''
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f7; border-radius: 12px; margin-bottom: 12px;">
@@ -902,12 +1014,19 @@ def generate_diff_card_html(stock: dict) -> str:
             <td style="padding: 20px 24px;">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                        <td style="vertical-align: middle;">
+                        <td style="vertical-align: middle; width: 20%;">
                             <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 600; color: #1d1d1f;">{symbol}</span>
-                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 17px; color: #86868b; margin-left: 12px;">{formatted_price}</span>
                         </td>
-                        <td style="text-align: right; vertical-align: middle;">
-                            <span style="display: inline-block; padding: 6px 12px; background-color: {diff_color}; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; border-radius: 6px;">{diff_str}</span>
+                        <td style="text-align: center; vertical-align: middle; width: 45%;">
+                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 19px; font-weight: 600; color: #0071e3;">{formatted_price}</span>
+                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 600; color: #0071e3; margin: 0 8px;">→</span>
+                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; color: #86868b;">Buy: {formatted_buy_price}</span>
+                        </td>
+                        <td style="text-align: center; vertical-align: middle; width: 20%;">
+                            <span style="display: inline-block; padding: 6px 12px; background-color: {diff_color}; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 700; border-radius: 6px;">{diff_str}</span>
+                        </td>
+                        <td style="text-align: right; vertical-align: middle; width: 15%;">
+                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 500; color: #1d1d1f;">{formatted_earnings}</span>
                         </td>
                     </tr>
                 </table>
