@@ -904,7 +904,7 @@ def format_price(price: float) -> str:
 def format_change_percent(change: float) -> tuple[str, str]:
     """Return (formatted_string, color) for daily price change."""
     if change >= 0:
-        return f"+{change:.2f}%", "#34c759"  # Apple Green
+        return f"+{change:.2f}%", "#4cd964"  # Light Apple Green
     else:
         return f"{change:.2f}%", "#ff3b30"  # Apple Red
 
@@ -915,7 +915,7 @@ def format_diff_percent(diff: float) -> tuple[str, str]:
     Positive = price below buy price (green, good to buy)
     """
     if diff >= 0:
-        return f"+{diff:.1f}%", "#34c759"  # Apple Green (below buy price - good to buy)
+        return f"+{diff:.1f}%", "#4cd964"  # Light Apple Green (below buy price - good to buy)
     else:
         return f"{diff:.1f}%", "#ff3b30"  # Apple Red (above buy price - not ideal)
 
@@ -1086,7 +1086,16 @@ def generate_stock_email_html():
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="x-apple-disable-message-reformatting">
+    <meta name="color-scheme" content="light only">
+    <meta name="supported-color-schemes" content="light only">
     <title>Stock Tracker Report</title>
+    <style>
+        :root {{ color-scheme: light only; }}
+        @media (prefers-color-scheme: dark) {{
+            body, .body {{ background-color: #ffffff !important; color: #1d1d1f !important; }}
+            .card {{ background-color: #f5f5f7 !important; }}
+        }}
+    </style>
     <!--[if mso]>
     <noscript>
         <xml>
