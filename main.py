@@ -840,10 +840,10 @@ async def _perform_update_email() -> dict:
     with open("stockapp.json", "r") as f:
         stock_data = json.load(f)
 
-    # Filter stocks where |changePercent| > 3 for dailyPriceChange
+    # Filter stocks where |changePercent| > 5 for dailyPriceChange
     filtered = []
     for s in stock_data["stocks"]:
-        if abs(s.get("changePercent", 0) or 0) > 3:
+        if abs(s.get("changePercent", 0) or 0) > 5:
             logger.info(f"Fetching news for {s['symbol']}...")
             news = get_stock_news(s["symbol"], s["name"], s["changePercent"])
             filtered.append({

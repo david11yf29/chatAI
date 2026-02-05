@@ -346,7 +346,7 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
    - Reads `stockapp.json` to get current portfolio
 
 7. **Filter Significant Price Changes**
-   - For each stock where `|changePercent| > 3`:
+   - For each stock where `|changePercent| > 5`:
 
    8. **Fetch News via AI (`get_stock_news()` function, lines 637-723)**
 
@@ -410,7 +410,7 @@ This ensures user edits are picked up by scheduled tasks without requiring manua
    - **Note:** `financialStatementsDate` is copied from `stockapp.json` (set by Update Tracker via yfinance earnings calendar)
 
 10. **Update email.json**
-    - **dailyPriceChange:** Array of stocks with >3% change + AI-generated news + date
+    - **dailyPriceChange:** Array of stocks with >5% change + AI-generated news + date
     - **needToDropUntilBuyPrice:** All stocks with buy price comparison + date
 
 11. **Return Response**
