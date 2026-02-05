@@ -996,7 +996,7 @@ def generate_stock_card_html(stock: dict) -> str:
 
 
 def generate_diff_card_html(stock: dict) -> str:
-    """Generate HTML for a Need to Drop Until Buy Price stock card."""
+    """Generate HTML for a Need to Drop Until Buy Price stock card (mobile-optimized)."""
     symbol = stock.get("symbol", "")
     price = stock.get("price", 0)
     buy_price = stock.get("buyPrice", 0)
@@ -1011,22 +1011,25 @@ def generate_diff_card_html(stock: dict) -> str:
     return f'''
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f7; border-radius: 12px; margin-bottom: 12px;">
         <tr>
-            <td style="padding: 20px 24px;">
+            <td style="padding: 16px;">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <!-- Row 1: Symbol | Earnings | Diff% (rowspan=2) -->
                     <tr>
-                        <td style="vertical-align: middle; width: 20%;">
-                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 600; color: #1d1d1f;">{symbol}</span>
+                        <td style="vertical-align: middle;">
+                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 18px; font-weight: 600; color: #1d1d1f;">{symbol}</span>
                         </td>
-                        <td style="text-align: center; vertical-align: middle; width: 45%;">
-                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 19px; font-weight: 600; color: #0071e3;">{formatted_price}</span>
-                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 600; color: #0071e3; margin: 0 8px;">→</span>
-                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; color: #86868b;">Buy: {formatted_buy_price}</span>
+                        <td style="text-align: left; vertical-align: middle; padding-right: 12px; width: 120px;">
+                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 12px; color: #86868b;">Earnings: {formatted_earnings}</span>
                         </td>
-                        <td style="text-align: center; vertical-align: middle; width: 20%;">
-                            <span style="display: inline-block; padding: 6px 12px; background-color: {diff_color}; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 700; border-radius: 6px;">{diff_str}</span>
+                        <td rowspan="2" style="text-align: right; vertical-align: middle; width: 70px;">
+                            <span style="display: inline-block; padding: 12px 10px; background-color: {diff_color}; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 18px; font-weight: 700; border-radius: 8px;">{diff_str}</span>
                         </td>
-                        <td style="text-align: right; vertical-align: middle; width: 15%;">
-                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 500; color: #1d1d1f;">{formatted_earnings}</span>
+                    </tr>
+                    <!-- Row 2: Price → Buy -->
+                    <tr>
+                        <td colspan="2" style="padding-top: 6px;">
+                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 500; color: #0071e3;">{formatted_price}</span>
+                            <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px; color: #86868b;"> → Buy: {formatted_buy_price}</span>
                         </td>
                     </tr>
                 </table>
