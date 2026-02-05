@@ -3,6 +3,10 @@ let autoSaveTimeout = null;
 let eventSource = null;
 let sseHealthCheckInterval = null;
 
+// Drag-and-drop state
+let draggedRow = null;
+let draggedIndex = null;
+
 // SSE connection to receive real-time updates from backend
 function connectSSE() {
     // Close existing connection if any
@@ -182,6 +186,113 @@ function addStock() {
     }
 }
 
+// Drag-and-drop handlers
+function handleDragStart(e) {
+    console.log('Drag started on row:', this.dataset.index);
+    draggedRow = this;
+    draggedIndex = parseInt(this.dataset.index);
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', draggedIndex);
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+
+    if (this === draggedRow) return;
+
+    // Remove all existing indicators
+    document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(row => {
+        row.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+
+    // Determine if mouse is in top or bottom half of the row
+    const rect = this.getBoundingClientRect();
+    const midpoint = rect.top + rect.height / 2;
+
+    if (e.clientY < midpoint) {
+        this.classList.add('drag-over-top');
+    } else {
+        this.classList.add('drag-over-bottom');
+    }
+}
+
+function handleDragLeave(e) {
+    this.classList.remove('drag-over-top', 'drag-over-bottom');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    console.log('Drop on row:', this.dataset.index);
+
+    if (this === draggedRow) return;
+
+    const fromIndex = draggedIndex;
+    let toIndex = parseInt(this.dataset.index);
+
+    // Determine insert position based on drop indicator
+    const isDropAbove = this.classList.contains('drag-over-top');
+
+    // Clean up indicators
+    this.classList.remove('drag-over-top', 'drag-over-bottom');
+
+    // Calculate the actual insertion index
+    // If dropping above the target row, insert at target's position
+    // If dropping below the target row, insert after target's position
+    if (!isDropAbove) {
+        toIndex = toIndex + 1;
+    }
+
+    // Adjust for the removal of the dragged item
+    if (fromIndex < toIndex) {
+        toIndex = toIndex - 1;
+    }
+
+    if (fromIndex === toIndex) return;
+
+    // Move item in the stocks array
+    const [movedStock] = currentStocks.splice(fromIndex, 1);
+    currentStocks.splice(toIndex, 0, movedStock);
+
+    // Re-render and persist
+    renderStocks(currentStocks);
+    reorderStocks(fromIndex, toIndex);
+}
+
+function handleDragEnd(e) {
+    this.classList.remove('dragging');
+    // Clean up any remaining drag indicator classes
+    document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(row => {
+        row.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+}
+
+async function reorderStocks(fromIndex, toIndex) {
+    console.log('Reordering stocks...', { fromIndex, toIndex });
+    try {
+        const response = await fetch('/api/stocks/reorder', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ fromIndex, toIndex })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Stocks reordered successfully:', data);
+            if (data.stocks) {
+                currentStocks = data.stocks;
+            }
+        } else {
+            console.error('Failed to reorder stocks');
+        }
+    } catch (error) {
+        console.error('Error reordering stocks:', error);
+    }
+}
+
 function renderStocks(stocks) {
     const tbody = document.getElementById('stock-body');
     tbody.innerHTML = '';
@@ -196,6 +307,8 @@ function renderStocks(stocks) {
 
     stocks.forEach((stock, index) => {
         const row = document.createElement('tr');
+        row.draggable = true;
+        row.dataset.index = index;
 
         // Format change percentage with sign and color
         let changeDisplay = '-';
@@ -213,6 +326,14 @@ function renderStocks(stocks) {
             <td class="${changeClass}">${changeDisplay}</td>
             <td><input type="number" class="editable-input buy-price-input" data-index="${index}" value="${stock.buyPrice.toFixed(2)}" step="0.01"></td>
         `;
+
+        // Drag event listeners
+        row.addEventListener('dragstart', handleDragStart);
+        row.addEventListener('dragover', handleDragOver);
+        row.addEventListener('drop', handleDrop);
+        row.addEventListener('dragend', handleDragEnd);
+        row.addEventListener('dragleave', handleDragLeave);
+
         tbody.appendChild(row);
     });
 
