@@ -136,7 +136,7 @@ h1::after {
 
 .trigger-time-input::placeholder {
     color: var(--text-muted);
-    font-size: 0.7rem;
+    font-size: 0.8rem;
 }
 
 .trigger-time-input:focus {
