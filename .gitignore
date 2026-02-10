@@ -17,7 +17,9 @@ ENV/
 app.log
 
 # Claude Code
-.claude/
+.claude/*
+!.claude/skills/
+.claude/settings*.json
 
 # IDE
 .vscode/
